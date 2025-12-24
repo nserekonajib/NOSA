@@ -23,8 +23,8 @@ supabase: Client = create_client(
 )
 
 # Email Configuration
-EMAIL_ADDRESS = os.getenv('EMAIL_ADDRESS', 'nserekonajib3@gmail.com')
-EMAIL_PASSWORD = os.getenv('EMAIL_PASSWORD', 'obfp pczm iemq atlz')
+EMAIL_ADDRESS = os.getenv('EMAIL_ADDRESS')
+EMAIL_PASSWORD = os.getenv('EMAIL_PASSWORD')
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 
@@ -307,3 +307,4 @@ def member_logout():
     session.clear()
     flash('Logged out successfully', 'success')
     return redirect(url_for('memberauth.member_login'))
+
