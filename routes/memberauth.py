@@ -1,18 +1,20 @@
+# memberauth.py
 import os
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
 from supabase import create_client, Client
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 import uuid
 import json
 from decimal import Decimal
 from dotenv import load_dotenv
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 import random
 import string
+from postgrest.exceptions import APIError
+
+# Import the send_otp functionality
+from sendotp import send_otp_email
 
 load_dotenv()
 
@@ -22,138 +24,17 @@ supabase: Client = create_client(
     os.getenv('SUPABASE_KEY')
 )
 
-# Email Configuration
-EMAIL_ADDRESS = os.getenv('EMAIL_ADDRESS')
-EMAIL_PASSWORD = os.getenv('EMAIL_PASSWORD')
-SMTP_SERVER = "smtp.gmail.com"
-SMTP_PORT = 587
-
 # Create Blueprint
 memberauth_bp = Blueprint('memberauth', __name__, url_prefix='/member')
 
 # Helper functions
+def get_current_utc_time():
+    """Get current UTC time with timezone awareness."""
+    return datetime.now(timezone.utc)
+
 def generate_otp(length=6):
     """Generate a numeric OTP of specified length."""
     return ''.join(random.choices(string.digits, k=length))
-
-def send_otp_email(to_email: str, otp_code: str, user_name: str = "Member"):
-    """Send OTP code to member's email."""
-    subject = "Your OTP Code - LUNSERK SACCO Member Portal"
-    
-    html_body = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <style>
-            body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
-            .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
-            .header {{ background: #2563eb; color: white; padding: 20px; text-align: center; }}
-            .content {{ padding: 30px; background: #f9fafb; }}
-            .otp-code {{ font-size: 32px; letter-spacing: 10px; font-weight: bold; color: #2563eb; 
-                         text-align: center; padding: 20px; background: white; border-radius: 8px; 
-                         margin: 20px 0; border: 2px dashed #2563eb; }}
-            .footer {{ margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; 
-                      color: #777; font-size: 0.9em; text-align: center; }}
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <div class="header">
-                <h1>LUNSERK SACCO</h1>
-                <p>Member Portal</p>
-            </div>
-            <div class="content">
-                <h2>Hello {user_name},</h2>
-                <p>Your OTP code for member portal access is:</p>
-                <div class="otp-code">{otp_code}</div>
-                <p>This OTP is valid for 10 minutes.</p>
-                <p>If you didn't request this OTP, please ignore this email.</p>
-            </div>
-            <div class="footer">
-                <p>&copy; 2024 LUNSERK SACCO. All rights reserved.</p>
-            </div>
-        </div>
-    </body>
-    </html>
-    """
-
-    msg = MIMEMultipart('alternative')
-    msg['From'] = f"LUNSERK SACCO <{EMAIL_ADDRESS}>"
-    msg['To'] = to_email
-    msg['Subject'] = subject
-    msg.attach(MIMEText(html_body, 'html'))
-
-    try:
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-            server.starttls()
-            server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
-            server.send_message(msg)
-            print(f"OTP email sent to {to_email}")
-            return True
-    except Exception as e:
-        print(f"Failed to send OTP email: {e}")
-        return False
-
-def send_password_reset_email(to_email: str, reset_token: str, user_name: str = "Member"):
-    """Send password reset email to member."""
-    reset_link = f"{request.host_url.rstrip('/')}/member/reset-password/{reset_token}"
-    subject = "Password Reset Request - LUNSERK SACCO Member Portal"
-    
-    html_body = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <style>
-            body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
-            .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
-            .header {{ background: #2563eb; color: white; padding: 20px; text-align: center; }}
-            .content {{ padding: 30px; background: #f9fafb; }}
-            .reset-button {{ display: inline-block; background: #2563eb; color: white; 
-                            padding: 12px 24px; text-decoration: none; border-radius: 6px; 
-                            font-weight: bold; margin: 20px 0; }}
-            .footer {{ margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; 
-                      color: #777; font-size: 0.9em; text-align: center; }}
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <div class="header">
-                <h1>LUNSERK SACCO</h1>
-                <p>Member Portal</p>
-            </div>
-            <div class="content">
-                <h2>Hello {user_name},</h2>
-                <p>Click the button below to reset your password:</p>
-                <div style="text-align: center;">
-                    <a href="{reset_link}" class="reset-button">Reset Password</a>
-                </div>
-                <p>Or copy this link: {reset_link}</p>
-                <p>This link will expire in 1 hour.</p>
-            </div>
-            <div class="footer">
-                <p>&copy; 2024 LUNSERK SACCO. All rights reserved.</p>
-            </div>
-        </div>
-    </body>
-    </html>
-    """
-
-    msg = MIMEMultipart('alternative')
-    msg['From'] = f"LUNSERK SACCO <{EMAIL_ADDRESS}>"
-    msg['To'] = to_email
-    msg['Subject'] = subject
-    msg.attach(MIMEText(html_body, 'html'))
-
-    try:
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-            server.starttls()
-            server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
-            server.send_message(msg)
-            print(f"Password reset email sent to {to_email}")
-            return True
-    except Exception as e:
-        print(f"Failed to send password reset email: {e}")
-        return False
 
 # Member login required decorator
 def member_login_required(f):
@@ -164,6 +45,43 @@ def member_login_required(f):
             return redirect(url_for('memberauth.member_login'))
         return f(*args, **kwargs)
     return decorated_function
+
+def get_member_by_email(email):
+    """Safely get member by email without using .single()"""
+    try:
+        response = supabase.table('members')\
+            .select('id, email, full_name, account_status, member_number')\
+            .eq('email', email)\
+            .execute()
+        
+        if response.data and len(response.data) > 0:
+            return response.data[0]  # Return first match
+        return None
+        
+    except APIError as e:
+        # This handles the PGRST116 error gracefully
+        if 'PGRST116' in str(e):
+            return None
+        raise e
+    except Exception as e:
+        print(f"Error fetching member: {e}")
+        return None
+
+def get_member_by_id(member_id):
+    """Safely get member by ID"""
+    try:
+        response = supabase.table('members')\
+            .select('*')\
+            .eq('id', member_id)\
+            .execute()
+        
+        if response.data and len(response.data) > 0:
+            return response.data[0]
+        return None
+        
+    except Exception as e:
+        print(f"Error fetching member by ID: {e}")
+        return None
 
 # Routes
 @memberauth_bp.route('/login', methods=['GET', 'POST'])
@@ -178,48 +96,52 @@ def member_login():
             flash('Email is required', 'error')
             return render_template('member/login.html')
 
-        # Fetch member
-        res = supabase.table('members')\
-            .select('id, email, full_name, account_status')\
-            .eq('email', email)\
-            .single()\
-            .execute()
-
-        if not res.data:
-            flash('Invalid email address', 'error')
+        # Fetch member safely
+        member = get_member_by_email(email)
+        
+        if not member:
+            # Don't reveal if email exists or not (security best practice)
+            flash('If your email exists in our system, you will receive an OTP.', 'info')
             return render_template('member/login.html')
 
-        member = res.data
-
-        # 🔒 IMPORTANT: Check ACTIVE status
-        if member['account_status'] != 'active':
-            flash('Your membership is inactive. Please pay membership fee.', 'error')
+        # Check ACTIVE status
+        if member.get('account_status') != 'active':
+            flash('Your membership is inactive. Please contact admin for assistance.', 'error')
             return render_template('member/login.html')
 
         # Generate OTP
         otp = generate_otp()
         otp_hash = generate_password_hash(otp)
-        expires_at = (datetime.utcnow() + timedelta(minutes=10)).isoformat()
+        expires_at = (get_current_utc_time() + timedelta(minutes=10)).isoformat()
 
         # Save OTP
-        supabase.table('member_otps').insert({
-            'member_id': member['id'],
-            'otp_hash': otp_hash,
-            'expires_at': expires_at
-        }).execute()
+        try:
+            supabase.table('member_otps').insert({
+                'member_id': member['id'],
+                'otp_hash': otp_hash,
+                'expires_at': expires_at,
+                'used': False
+            }).execute()
+        except Exception as e:
+            flash('Failed to generate OTP. Please try again.', 'error')
+            print(f"OTP save error: {e}")
+            return render_template('member/login.html')
 
-        # Send OTP
-        send_otp_email(member['email'], otp, member['full_name'])
+        # Send OTP using the imported function
+        try:
+            send_otp_email(member['email'], otp, member['full_name'])
+        except Exception as e:
+            print(f"Email sending error: {e}")
+            # Don't fail login if email fails, just log it
 
         # Store temp session
         session['otp_member_id'] = member['id']
+        session['otp_attempts'] = 0  # Track OTP attempts
 
         flash('OTP sent to your email', 'success')
         return redirect(url_for('memberauth.verify_otp'))
 
     return render_template('member/login.html')
-
-
 
 @memberauth_bp.route('/verify-otp', methods=['GET', 'POST'])
 def verify_otp():
@@ -233,77 +155,166 @@ def verify_otp():
         return redirect(url_for('memberauth.member_login'))
 
     if request.method == 'POST':
-        otp_input = request.form.get('otp')
+        # Increment attempt counter
+        session['otp_attempts'] = session.get('otp_attempts', 0) + 1
+        
+        # Limit attempts
+        if session.get('otp_attempts', 0) > 5:
+            session.pop('otp_member_id', None)
+            session.pop('otp_attempts', None)
+            flash('Too many OTP attempts. Please login again.', 'error')
+            return redirect(url_for('memberauth.member_login'))
 
-        if not otp_input:
-            flash('OTP is required', 'error')
+        otp_input = request.form.get('otp', '').strip()
+
+        if not otp_input or len(otp_input) != 6:
+            flash('Please enter a valid 6-digit OTP', 'error')
             return render_template('member/verify_otp.html')
 
+        current_time = get_current_utc_time()
+        
         # Fetch latest valid OTP
-        otp_res = supabase.table('member_otps')\
-            .select('*')\
-            .eq('member_id', member_id)\
-            .eq('used', False)\
-            .gt('expires_at', datetime.utcnow().isoformat())\
-            .order('created_at', desc=True)\
-            .limit(1)\
-            .execute()
-
-        if not otp_res.data:
-            flash('Invalid or expired OTP', 'error')
+        try:
+            otp_res = supabase.table('member_otps')\
+                .select('*')\
+                .eq('member_id', member_id)\
+                .eq('used', False)\
+                .gt('expires_at', current_time.isoformat())\
+                .order('created_at', desc=True)\
+                .limit(1)\
+                .execute()
+                
+            if not otp_res.data:
+                flash('Invalid or expired OTP. Please request a new one.', 'error')
+                return render_template('member/verify_otp.html')
+                
+            otp_row = otp_res.data[0]
+            
+        except Exception as e:
+            flash('Error verifying OTP. Please try again.', 'error')
+            print(f"OTP fetch error: {e}")
             return render_template('member/verify_otp.html')
-
-        otp_row = otp_res.data[0]
 
         # Verify OTP
         if not check_password_hash(otp_row['otp_hash'], otp_input):
-            flash('Incorrect OTP', 'error')
+            remaining_attempts = 5 - session.get('otp_attempts', 0)
+            flash(f'Incorrect OTP. {remaining_attempts} attempts remaining.', 'error')
             return render_template('member/verify_otp.html')
 
         # Mark OTP as used
-        supabase.table('member_otps')\
-            .update({'used': True})\
-            .eq('id', otp_row['id'])\
-            .execute()
+        try:
+            supabase.table('member_otps')\
+                .update({'used': True})\
+                .eq('id', otp_row['id'])\
+                .execute()
+        except Exception as e:
+            print(f"OTP update error: {e}")
 
         # Fetch member
-        member_res = supabase.table('members')\
-            .select('*')\
-            .eq('id', member_id)\
-            .single()\
-            .execute()
-
-        member = member_res.data
-
-        # 🔒 Final safety check
-        if member['account_status'] != 'active':
-            flash('Account inactive', 'error')
+        member = get_member_by_id(member_id)
+        
+        if not member:
+            flash('Error fetching member details. Please login again.', 'error')
             return redirect(url_for('memberauth.member_login'))
 
-        # ✅ LOGIN SESSION
+        # Final safety check
+        if member.get('account_status') != 'active':
+            flash('Account inactive. Please contact admin for assistance.', 'error')
+            return redirect(url_for('memberauth.member_login'))
+
+        # Create login session
         session.clear()
         session['member_logged_in'] = True
         session['member_id'] = member['id']
         session['member_email'] = member['email']
         session['member_name'] = member['full_name']
-        session['member_number'] = member['member_number']
+        session['member_number'] = member.get('member_number', '')
+        session['last_login'] = get_current_utc_time().isoformat()
 
         # Update login timestamp
-        supabase.table('members')\
-            .update({'updated_at': datetime.utcnow().isoformat()})\
-            .eq('id', member['id'])\
-            .execute()
-
-        print(member['id'], 'login', 'Logged in via OTP')
+        try:
+            supabase.table('members')\
+                .update({'last_login': get_current_utc_time().isoformat()})\
+                .eq('id', member['id'])\
+                .execute()
+        except Exception as e:
+            print(f"Login timestamp update error: {e}")
 
         flash(f'Welcome {member["full_name"]}', 'success')
         return redirect(url_for('member.dashboard'))
 
     return render_template('member/verify_otp.html')
 
-
 @memberauth_bp.route('/logout')
 def member_logout():
+    """Logout member"""
     session.clear()
     flash('Logged out successfully', 'success')
     return redirect(url_for('memberauth.member_login'))
+
+# Forgot Password Route
+@memberauth_bp.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    """Handle password reset request"""
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip().lower()
+        
+        if not email:
+            flash('Email is required', 'error')
+            return render_template('member/forgot_password.html')
+        
+        # Check if member exists
+        member = get_member_by_email(email)
+        
+        # Always show success message for security (don't reveal if email exists)
+        flash('If your email exists in our system, you will receive password reset instructions.', 'info')
+        
+        if not member:
+            return render_template('member/forgot_password.html')
+        
+        # Generate reset token
+        reset_token = str(uuid.uuid4())
+        expires_at = (get_current_utc_time() + timedelta(hours=1)).isoformat()
+        
+        try:
+            # Save reset token
+            supabase.table('password_resets').insert({
+                'member_id': member['id'],
+                'reset_token': reset_token,
+                'expires_at': expires_at,
+                'used': False
+            }).execute()
+            
+            # You could also create a separate function for sending password reset emails
+            # For now, we can use the same send_otp_email or create a new function in sendotp.py
+            # send_password_reset_email(member['email'], reset_token, member['full_name'])
+            
+        except Exception as e:
+            print(f"Reset token error: {e}")
+        
+        return render_template('member/forgot_password.html')
+    
+    return render_template('member/forgot_password.html')
+
+# Health check endpoint
+@memberauth_bp.route('/health')
+def health_check():
+    """Health check endpoint for monitoring."""
+    try:
+        # Test database connection without .single()
+        response = supabase.table('members').select('id').limit(1).execute()
+        
+        return jsonify({
+            'status': 'healthy',
+            'timestamp': get_current_utc_time().isoformat(),
+            'database': 'connected',
+            'service': 'member_auth'
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'status': 'unhealthy',
+            'error': str(e),
+            'timestamp': get_current_utc_time().isoformat(),
+            'service': 'member_auth'
+        }), 500
