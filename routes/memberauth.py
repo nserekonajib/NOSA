@@ -21,11 +21,15 @@ supabase: Client = create_client(
     os.getenv('SUPABASE_URL'),
     os.getenv('SUPABASE_KEY')
 )
+EMAIL_ADDRESSS="nserekonajib3@gmail.com"
+EMAIL_PASSWORDS="obfp pczm iemq atlz"
+SMTP_SERVESR="smtp.gmail.com"
+SMTP_PORTS=587
 
 # Email Configuration
-EMAIL_ADDRESS = os.getenv('EMAIL_ADDRESS')
-EMAIL_PASSWORD = os.getenv('EMAIL_PASSWORD')
-SMTP_SERVER = "smtp.gmail.com"
+EMAIL_ADDRESS = EMAIL_ADDRESSS
+EMAIL_PASSWORD = EMAIL_PASSWORDS
+SMTP_SERVER = SMTP_SERVESR
 SMTP_PORT = 587
 
 # Create Blueprint
@@ -307,4 +311,5 @@ def member_logout():
     session.clear()
     flash('Logged out successfully', 'success')
     return redirect(url_for('memberauth.member_login'))
+
 
