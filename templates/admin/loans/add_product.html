@@ -1,0 +1,280 @@
+{% extends "adminbase.html" %}
+
+{% block title %}Add Loan Product - LUNSERK SACCO Admin{% endblock %}
+
+{% block breadcrumb %}Loans / Products / Add{% endblock %}
+
+{% block page_title %}Add Loan Product{% endblock %}
+
+{% block page_subtitle %}Create a new loan product with terms and conditions{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="card-glass rounded-2xl p-6">
+        <form method="POST" id="loanProductForm" class="space-y-6">
+            <!-- Basic Information -->
+            <div>
+                <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Basic Information</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Product Name -->
+                    <div>
+                        <label for="name" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-tag text-blue-500 mr-1"></i> Product Name *
+                        </label>
+                        <input type="text" id="name" name="name" required
+                               class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                               placeholder="e.g., Business Loan">
+                    </div>
+                    
+                    <!-- Status -->
+                    <div>
+                        <label for="status" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-circle text-blue-500 mr-1"></i> Status
+                        </label>
+                        <select id="status" name="status"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                            <option value="active" selected>Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Description -->
+                    <div class="md:col-span-2">
+                        <label for="description" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-align-left text-blue-500 mr-1"></i> Description
+                        </label>
+                        <textarea id="description" name="description" rows="3"
+                                  class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                  placeholder="Describe the loan product..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loan Terms -->
+            <div>
+                <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Loan Terms</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- Interest Rate -->
+                    <div>
+                        <label for="interest_rate" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-percentage text-blue-500 mr-1"></i> Interest Rate (%) *
+                        </label>
+                        <input type="number" id="interest_rate" name="interest_rate" required step="0.01"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                               placeholder="12.5">
+                    </div>
+                    
+                    <!-- Min Amount -->
+                    <div>
+                        <label for="min_amount" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-arrow-down text-blue-500 mr-1"></i> Min Amount (UGX) *
+                        </label>
+                        <input type="number" id="min_amount" name="min_amount" required step="1000"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                               placeholder="100000">
+                    </div>
+                    
+                    <!-- Max Amount -->
+                    <div>
+                        <label for="max_amount" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-arrow-up text-blue-500 mr-1"></i> Max Amount (UGX) *
+                        </label>
+                        <input type="number" id="max_amount" name="max_amount" required step="1000"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                               placeholder="5000000">
+                    </div>
+                    
+                    <!-- Repayment Period -->
+                    <div>
+                        <label for="repayment_period_months" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-calendar-alt text-blue-500 mr-1"></i> Repayment Period (months) *
+                        </label>
+                        <input type="number" id="repayment_period_months" name="repayment_period_months" required
+                               class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                               placeholder="12">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fees -->
+            <div>
+                <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Fees & Penalties</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- Processing Fee -->
+                    <div>
+                        <label for="processing_fee" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-file-invoice-dollar text-blue-500 mr-1"></i> Processing Fee (UGX)
+                        </label>
+                        <input type="number" id="processing_fee" name="processing_fee" step="100"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                               placeholder="5000">
+                    </div>
+                    
+                    <!-- Insurance Fee -->
+                    <div>
+                        <label for="insurance_fee" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-shield-alt text-blue-500 mr-1"></i> Insurance Fee (UGX)
+                        </label>
+                        <input type="number" id="insurance_fee" name="insurance_fee" step="100"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                               placeholder="1000">
+                    </div>
+                    
+                    <!-- Grace Period -->
+                    <div>
+                        <label for="grace_period_days" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-clock text-blue-500 mr-1"></i> Grace Period (days)
+                        </label>
+                        <input type="number" id="grace_period_days" name="grace_period_days"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                               placeholder="7">
+                    </div>
+                    
+                    <!-- Penalty Rate -->
+                    <div>
+                        <label for="penalty_rate" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-exclamation-triangle text-blue-500 mr-1"></i> Penalty Rate (%)
+                        </label>
+                        <input type="number" id="penalty_rate" name="penalty_rate" step="0.1"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                               placeholder="2.5">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Eligibility Criteria -->
+            <div>
+                <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Eligibility Criteria</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Min Age -->
+                    <div>
+                        <label for="min_age" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-user text-blue-500 mr-1"></i> Minimum Age
+                        </label>
+                        <input type="number" id="min_age" name="min_age"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                               placeholder="18">
+                    </div>
+                    
+                    <!-- Min Savings Balance -->
+                    <div>
+                        <label for="min_savings_balance" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-piggy-bank text-blue-500 mr-1"></i> Min Savings Balance (UGX)
+                        </label>
+                        <input type="number" id="min_savings_balance" name="min_savings_balance" step="1000"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                               placeholder="50000">
+                    </div>
+                    
+                    <!-- Min Membership Months -->
+                    <div>
+                        <label for="min_membership_months" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-calendar-check text-blue-500 mr-1"></i> Min Membership (months)
+                        </label>
+                        <input type="number" id="min_membership_months" name="min_membership_months"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                               placeholder="3">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Requirements -->
+            <div>
+                <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Requirements</h3>
+                
+                <div id="requirementsContainer" class="space-y-2 mb-4">
+                    <div class="flex items-center gap-2">
+                        <input type="text" name="requirements[]" 
+                               class="flex-1 px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                               placeholder="e.g., National ID copy">
+                        <button type="button" onclick="removeRequirement(this)" 
+                                class="p-2 text-red-500 hover:text-red-700">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <button type="button" onclick="addRequirement()" 
+                        class="px-4 py-2 bg-blue-100 text-blue-600 rounded-xl hover:bg-blue-200 transition-colors">
+                    <i class="fas fa-plus mr-2"></i> Add Requirement
+                </button>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="pt-6 border-t border-gray-200">
+                <div class="flex justify-between">
+                    <a href="{{ url_for('loans.loan_products') }}" 
+                       class="px-6 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors">
+                        <i class="fas fa-arrow-left mr-2"></i> Cancel
+                    </a>
+                    
+                    <button type="submit" 
+                            class="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all hover-lift">
+                        <i class="fas fa-save mr-2"></i> Create Product
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Requirements management
+    function addRequirement() {
+        const container = document.getElementById('requirementsContainer');
+        const div = document.createElement('div');
+        div.className = 'flex items-center gap-2';
+        div.innerHTML = `
+            <input type="text" name="requirements[]" 
+                   class="flex-1 px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                   placeholder="e.g., National ID copy">
+            <button type="button" onclick="removeRequirement(this)" 
+                    class="p-2 text-red-500 hover:text-red-700">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        container.appendChild(div);
+        div.querySelector('input').focus();
+    }
+    
+    function removeRequirement(button) {
+        button.parentElement.remove();
+    }
+    
+    // Form validation
+    document.getElementById('loanProductForm').addEventListener('submit', function(e) {
+        const minAmount = parseFloat(document.getElementById('min_amount').value);
+        const maxAmount = parseFloat(document.getElementById('max_amount').value);
+        
+        if (minAmount >= maxAmount) {
+            e.preventDefault();
+            alert('Maximum amount must be greater than minimum amount');
+            document.getElementById('max_amount').focus();
+            return false;
+        }
+        
+        const interestRate = parseFloat(document.getElementById('interest_rate').value);
+        if (interestRate <= 0 || interestRate > 100) {
+            e.preventDefault();
+            alert('Interest rate must be between 0 and 100%');
+            return false;
+        }
+        
+        return true;
+    });
+</script>
+
+<style>
+    .hover-lift {
+        transition: transform 0.2s ease-in-out;
+    }
+    
+    .hover-lift:hover {
+        transform: translateY(-2px);
+    }
+</style>
+{% endblock %}

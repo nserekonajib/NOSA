@@ -1,0 +1,353 @@
+{% extends "adminbase.html" %}
+
+{% block title %}Add Repayment - LUNSERK SACCO Admin{% endblock %}
+
+{% block breadcrumb %}Loans / Add Repayment{% endblock %}
+
+{% block page_title %}Add Loan Repayment{% endblock %}
+
+{% block page_subtitle %}Record loan repayment for a member{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="card-glass rounded-2xl p-6">
+        <form method="POST" id="addRepaymentForm" class="space-y-6">
+            <!-- Member Selection -->
+            <div>
+                <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Member Information</h3>
+                
+                <div class="mb-4">
+                    <label for="member_id" class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-user text-blue-500 mr-1"></i> Select Member *
+                    </label>
+                    <select id="member_id" name="member_id" required
+                            class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                        <option value="">Choose a member...</option>
+                        {% for member in members %}
+                        <option value="{{ member.id }}">
+                            {{ member.full_name }} ({{ member.member_number }}) - {{ member.email }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- Member Loan Summary -->
+                <div id="memberLoanInfo" class="hidden p-4 bg-blue-50 rounded-xl space-y-3">
+                    <h4 class="font-bold text-gray-800 mb-2">Member Loan Summary</h4>
+                    
+                    <div id="loanAccountInfo" class="hidden">
+                        <div class="grid grid-cols-2 gap-3 mb-3">
+                            <div class="bg-white p-3 rounded-lg">
+                                <p class="text-xs text-gray-600">Current Balance</p>
+                                <p id="currentBalance" class="text-lg font-bold text-gray-800"></p>
+                            </div>
+                            <div class="bg-white p-3 rounded-lg">
+                                <p class="text-xs text-gray-600">Available Limit</p>
+                                <p id="availableLimit" class="text-lg font-bold text-gray-800"></p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="pendingRepayments" class="hidden">
+                        <p class="text-sm font-medium text-gray-700 mb-1">Pending Repayments:</p>
+                        <p id="totalPending" class="text-lg font-bold text-red-600"></p>
+                    </div>
+                    
+                    <div id="noLoansMessage" class="hidden">
+                        <p class="text-sm text-gray-600">This member has no active loans.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loan Selection (Optional) -->
+            <div>
+                <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Loan Selection (Optional)</h3>
+                
+                <div class="mb-4">
+                    <label for="loan_application_id" class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-file-invoice-dollar text-blue-500 mr-1"></i> Select Loan Account
+                    </label>
+                    <select id="loan_application_id" name="loan_application_id"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                        <option value="">Choose a loan account (optional)...</option>
+                        {% for app in applications %}
+                        <option value="{{ app.id }}" data-member="{{ app.member_id }}">
+                            {{ app.account_number }} - UGX {{ "{:,.0f}".format(app.loan_amount|float) }} ({{ app.members.full_name }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- Selected Loan Info -->
+                <div id="loanInfo" class="hidden p-4 bg-green-50 rounded-xl">
+                    <h4 class="font-bold text-gray-800 mb-2">Selected Loan Details</h4>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <p class="text-xs text-gray-600">Account Number</p>
+                            <p id="loanAccountNumber" class="font-medium text-gray-800"></p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-600">Loan Amount</p>
+                            <p id="loanAmount" class="font-medium text-gray-800"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Repayment Details -->
+            <div>
+                <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Repayment Details</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Amount -->
+                    <div>
+                        <label for="amount" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-money-bill-wave text-blue-500 mr-1"></i> Amount (UGX) *
+                        </label>
+                        <input type="number" id="amount" name="amount" required step="100"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                               placeholder="50000">
+                    </div>
+                    
+                    <!-- Payment Method -->
+                    <div>
+                        <label for="payment_method" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-credit-card text-blue-500 mr-1"></i> Payment Method *
+                        </label>
+                        <select id="payment_method" name="payment_method" required
+                                class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                            <option value="">Select method...</option>
+                            <option value="cash">Cash</option>
+                            <option value="mobile_money">Mobile Money</option>
+                            <option value="bank_transfer">Bank Transfer</option>
+                            <option value="cheque">Cheque</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Reference Number -->
+                <div class="mt-4">
+                    <label for="reference_number" class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-hashtag text-blue-500 mr-1"></i> Reference Number
+                    </label>
+                    <input type="text" id="reference_number" name="reference_number"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                           placeholder="Transaction reference number">
+                </div>
+                
+                <!-- Remarks -->
+                <div class="mt-4">
+                    <label for="remarks" class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-comment text-blue-500 mr-1"></i> Remarks
+                    </label>
+                    <textarea id="remarks" name="remarks" rows="2"
+                              class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                              placeholder="Additional notes about this repayment..."></textarea>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="pt-6 border-t border-gray-200">
+                <div class="flex justify-between">
+                    <a href="{{ url_for('loans.loan_repayments') }}" 
+                       class="px-6 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors">
+                        <i class="fas fa-arrow-left mr-2"></i> Cancel
+                    </a>
+                    
+                    <button type="submit" 
+                            class="px-6 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 transition-all hover-lift">
+                        <i class="fas fa-save mr-2"></i> Record Repayment
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Format currency
+    function formatCurrency(amount) {
+        return 'UGX ' + parseFloat(amount).toLocaleString('en-US', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        });
+    }
+    
+    // Load member loan information
+    document.getElementById('member_id').addEventListener('change', function() {
+        const memberId = this.value;
+        const memberLoanInfo = document.getElementById('memberLoanInfo');
+        const loanApplicationSelect = document.getElementById('loan_application_id');
+        
+        if (memberId) {
+            // Show loading state
+            memberLoanInfo.classList.remove('hidden');
+            document.getElementById('loanAccountInfo').classList.add('hidden');
+            document.getElementById('pendingRepayments').classList.add('hidden');
+            document.getElementById('noLoansMessage').classList.add('hidden');
+            
+            // Filter loan applications for this member
+            Array.from(loanApplicationSelect.options).forEach(option => {
+                if (option.value && option.dataset.member !== memberId) {
+                    option.style.display = 'none';
+                    option.disabled = true;
+                } else {
+                    option.style.display = 'block';
+                    option.disabled = false;
+                }
+            });
+            
+            // Reset loan application selection
+            loanApplicationSelect.value = '';
+            document.getElementById('loanInfo').classList.add('hidden');
+            
+            // Fetch member loan data
+            fetch(`/admin/loans/get-member-loans/${memberId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        if (data.loan_account) {
+                            document.getElementById('pendingRepayments').classList.remove('hidden');
+                            document.getElementById('totalPending').textContent = 
+                                formatCurrency(data.loan_account.current_balance);
+                            document.getElementById('availableLimit').textContent = 
+                                formatCurrency(data.loan_account.available_limit);
+                        }
+                        
+                        if (data.total_pending && parseFloat(data.total_pending) > 0) {
+                            document.getElementById('pendingRepayments').classList.remove('hidden');
+                            document.getElementById('totalPending').textContent = 
+                                formatCurrency(data.total_pending);
+                        }
+                        
+                        if (!data.loan_account && !data.applications.length) {
+                            document.getElementById('noLoansMessage').classList.remove('hidden');
+                        }
+                    } else {
+                        memberLoanInfo.classList.add('hidden');
+                        alert('Error loading member loan information');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    memberLoanInfo.classList.add('hidden');
+                });
+        } else {
+            memberLoanInfo.classList.add('hidden');
+            
+            // Reset loan application filter
+            Array.from(loanApplicationSelect.options).forEach(option => {
+                option.style.display = 'block';
+                option.disabled = false;
+            });
+        }
+    });
+    
+    // Show loan details when selected
+    document.getElementById('loan_application_id').addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        const loanInfo = document.getElementById('loanInfo');
+        
+        if (selectedOption.value && selectedOption.text.includes('- UGX')) {
+            loanInfo.classList.remove('hidden');
+            
+            // Extract loan details from option text
+            const parts = selectedOption.text.split(' - UGX ');
+            if (parts.length >= 2) {
+                document.getElementById('loanAccountNumber').textContent = parts[0].trim();
+                document.getElementById('loanAmount').textContent = 'UGX ' + parts[1].split(' ')[0];
+            }
+        } else {
+            loanInfo.classList.add('hidden');
+        }
+    });
+    
+    // Form validation
+    document.getElementById('addRepaymentForm').addEventListener('submit', function(e) {
+        const amount = parseFloat(document.getElementById('amount').value) || 0;
+        const paymentMethod = document.getElementById('payment_method').value;
+        const memberId = document.getElementById('member_id').value;
+        
+        if (!memberId) {
+            e.preventDefault();
+            alert('Please select a member');
+            document.getElementById('member_id').focus();
+            return false;
+        }
+        
+        if (amount <= 0) {
+            e.preventDefault();
+            alert('Please enter a valid amount');
+            document.getElementById('amount').focus();
+            return false;
+        }
+        
+        if (!paymentMethod) {
+            e.preventDefault();
+            alert('Please select a payment method');
+            document.getElementById('payment_method').focus();
+            return false;
+        }
+        
+        // Confirm before submitting
+        const memberName = document.getElementById('member_id').options[document.getElementById('member_id').selectedIndex].text;
+        const confirmMessage = `Are you sure you want to record a repayment of UGX ${amount.toLocaleString()} for ${memberName.split('(')[0].trim()}?`;
+        
+        if (!confirm(confirmMessage)) {
+            e.preventDefault();
+            return false;
+        }
+        
+        return true;
+    });
+    
+    // Set maximum amount based on current balance
+    document.getElementById('amount').addEventListener('input', function() {
+        const currentBalanceElem = document.getElementById('currentBalance');
+        if (currentBalanceElem && currentBalanceElem.textContent) {
+            const currentBalance = parseFloat(currentBalanceElem.textContent.replace(/[^0-9.]/g, ''));
+            const enteredAmount = parseFloat(this.value) || 0;
+            
+            if (enteredAmount > currentBalance) {
+                this.setCustomValidity(`Amount cannot exceed current balance of ${formatCurrency(currentBalance)}`);
+            } else {
+                this.setCustomValidity('');
+            }
+        }
+    });
+</script>
+
+<style>
+    .hover-lift {
+        transition: transform 0.2s ease-in-out;
+    }
+    
+    .hover-lift:hover {
+        transform: translateY(-2px);
+    }
+    
+    /* Custom scrollbar for selects */
+    select {
+        scrollbar-width: thin;
+        scrollbar-color: #cbd5e1 #f1f5f9;
+    }
+    
+    select::-webkit-scrollbar {
+        width: 8px;
+    }
+    
+    select::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 4px;
+    }
+    
+    select::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+    }
+    
+    select::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+</style>
+{% endblock %}

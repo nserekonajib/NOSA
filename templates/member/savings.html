@@ -1,0 +1,598 @@
+{% extends "base.html" %}
+
+{% block title %}Savings Account - LUNSERK SACCO{% endblock %}
+
+{% block page_title %}Savings Account Management{% endblock %}
+
+{% block page_subtitle %}Grow your savings securely with competitive interest rates{% endblock %}
+
+{% block breadcrumb %}
+<nav class="flex" aria-label="Breadcrumb">
+    <ol class="inline-flex items-center space-x-1 md:space-x-3">
+        <li class="inline-flex items-center">
+            <a href="{{ url_for('member.dashboard') }}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+                <i class="fas fa-home mr-2"></i>
+                Dashboard
+            </a>
+        </li>
+        <li>
+            <div class="flex items-center">
+                <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                <span class="text-sm font-medium text-gray-500">Savings</span>
+            </div>
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Savings Overview Cards -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Main Account Card -->
+        <div class="lg:col-span-2 bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
+            <div class="bg-gradient-to-r from-emerald-600 to-green-600 p-6">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h3 class="text-lg font-semibold text-white">Savings Account Overview</h3>
+                        <p class="text-emerald-100 text-sm mt-1">Track and grow your savings</p>
+                    </div>
+                    <span class="px-4 py-1.5 bg-white/20 backdrop-blur-sm rounded-full text-xs font-medium text-white">
+                        {{ savings_account.account_number }}
+                    </span>
+                </div>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Balance Section -->
+                    <div class="space-y-6">
+                        <div>
+                            <p class="text-sm font-medium text-gray-500 mb-2">Current Balance</p>
+                            <div class="flex items-baseline">
+                                <span class="text-3xl font-bold text-gray-800">
+                                    UGX {{ "{:,.0f}".format(savings_account.current_balance|float) }}
+                                </span>
+                                <span class="ml-2 px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    {{ savings_account.status|upper }}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <p class="text-sm font-medium text-gray-500 mb-2">Available Balance</p>
+                            <p class="text-2xl font-bold text-emerald-600">
+                                UGX {{ "{:,.0f}".format(savings_account.available_balance|float) }}
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <!-- Account Details Section -->
+                    <div class="space-y-4">
+                        <div>
+                            <p class="text-sm font-medium text-gray-500">Account Name</p>
+                            <p class="text-lg font-semibold text-gray-800">{{ savings_account.account_name }}</p>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-sm font-medium text-gray-500">Interest Rate</p>
+                                <div class="flex items-center">
+                                    <p class="text-lg font-semibold text-gray-800">{{ savings_account.interest_rate|float }}%</p>
+                                    <span class="ml-2 text-xs text-emerald-600 font-medium">p.a.</span>
+                                </div>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-500">Minimum Balance</p>
+                                <p class="text-lg font-semibold text-gray-800">
+                                    UGX {{ "{:,.0f}".format(savings_account.minimum_balance|float) }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quick Deposit Card -->
+        <div class="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl shadow-lg p-6 text-white">
+            <h3 class="text-xl font-bold mb-6">Quick Deposit</h3>
+            
+            <!-- Deposit Form -->
+            <form id="depositForm" method="POST" action="{{ url_for('member.initiate_deposit') }}" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-blue-100 mb-2">
+                        Enter Amount (UGX)
+                    </label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-100 font-bold">UGX</span>
+                        <input type="number" 
+                               name="amount" 
+                               id="amount"
+                               min="1000"
+                               step="1000"
+                               required
+                               class="w-full pl-14 pr-4 py-3 bg-white/10 backdrop-blur-sm border border-blue-300/30 rounded-lg focus:ring-2 focus:ring-white focus:border-white text-white placeholder-blue-200"
+                               placeholder="Enter amount">
+                        <div class="absolute right-3 top-1/2 transform -translate-y-1/2">
+                            <button type="button" 
+                                    onclick="setAmount('{{ savings_account.available_balance|float|int }}')"
+                                    class="text-xs bg-white/20 hover:bg-white/30 px-2 py-1 rounded transition-colors">
+                                Max
+                            </button>
+                        </div>
+                    </div>
+                    <p class="text-xs text-blue-100 mt-2">
+                        Minimum deposit: UGX 1,000
+                    </p>
+                </div>
+                
+                <button type="submit" 
+                        class="w-full bg-white text-blue-600 font-semibold py-3 px-4 rounded-lg hover:bg-gray-50 transition-all duration-300 flex items-center justify-center shadow-lg hover:shadow-xl">
+                    <i class="fas fa-arrow-circle-down mr-3"></i>
+                    Deposit via PesaPal
+                </button>
+                
+                <p class="text-xs text-center text-blue-200 mt-4">
+                    <i class="fas fa-lock mr-1"></i>
+                    Secure payment processing
+                </p>
+            </form>
+            
+            <!-- Quick Amount Buttons -->
+            <div class="mt-6 pt-6 border-t border-blue-400/30">
+                <p class="text-sm font-medium text-blue-100 mb-3">Quick Amounts</p>
+                <div class="grid grid-cols-2 gap-3">
+                    {% set quick_amounts = [5000, 10000, 50000, 100000] %}
+                    {% for amount in quick_amounts %}
+                    <button type="button" 
+                            onclick="setAmount('{{ amount }}')"
+                            class="py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-medium transition-colors">
+                        UGX {{ "{:,.0f}".format(amount) }}
+                    </button>
+                    {% endfor %}
+                </div>
+                
+                <!-- Recent Deposit Suggestions -->
+                {% if recent_deposits %}
+                <div class="mt-4">
+                    <p class="text-sm font-medium text-blue-100 mb-2">Recent Deposits</p>
+                    <div class="flex flex-wrap gap-2">
+                        {% for deposit in recent_deposits[:4] %}
+                        <button type="button" 
+                                onclick="setAmount('{{ deposit.amount|float|int }}')"
+                                class="px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-xs font-medium transition-colors">
+                            UGX {{ "{:,.0f}".format(deposit.amount|float) }}
+                        </button>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Transaction History Section -->
+    <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
+        <div class="px-6 py-5 border-b border-gray-200">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-800">Transaction History</h3>
+                    <p class="text-sm text-gray-600 mt-1">{{ transactions|length }} transactions found</p>
+                </div>
+                <div class="mt-4 sm:mt-0">
+                    <div class="flex items-center space-x-4">
+                        <div class="relative">
+                            <select id="filterType" 
+                                    class="appearance-none bg-white border border-gray-300 rounded-lg py-2.5 pl-4 pr-10 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+                                <option value="all">All Transactions</option>
+                                <option value="deposit">Deposits Only</option>
+                                <option value="withdrawal">Withdrawals Only</option>
+                            </select>
+                            <i class="fas fa-chevron-down absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Date</th>
+                        <th class="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Description</th>
+                        <th class="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Reference</th>
+                        <th class="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Type</th>
+                        <th class="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Amount</th>
+                        <th class="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                        <th class="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Balance</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% if transactions|length > 0 %}
+                        {% for transaction in transactions %}
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="py-4 px-6">
+                                <div class="text-sm text-gray-900 font-medium">
+                                    {% if transaction.created_at %}
+                                        {{ transaction.created_at[:10] }}
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="py-4 px-6">
+                                <div class="text-sm font-medium text-gray-900">
+                                    {{ transaction.description|default('Transaction') }}
+                                </div>
+                                {% if transaction.payment_method %}
+                                <div class="text-xs text-gray-500 mt-1">
+                                    <i class="fas fa-credit-card mr-1.5"></i>{{ transaction.payment_method|title }}
+                                </div>
+                                {% endif %}
+                            </td>
+                            <td class="py-4 px-6">
+                                <div class="text-sm text-gray-600 font-mono">
+                                    {{ transaction.reference_number|default('N/A') }}
+                                </div>
+                            </td>
+                            <td class="py-4 px-6">
+                                <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium 
+                                    {% if transaction.transaction_type == 'deposit' %}bg-green-100 text-green-800
+                                    {% else %}bg-red-100 text-red-800{% endif %}">
+                                    <i class="fas {% if transaction.transaction_type == 'deposit' %}fa-arrow-down{% else %}fa-arrow-up{% endif %} mr-1.5 text-xs"></i>
+                                    {{ transaction.transaction_type|title }}
+                                </span>
+                            </td>
+                            <td class="py-4 px-6">
+                                <div class="text-sm font-bold {% if transaction.transaction_type == 'deposit' %}text-green-600{% else %}text-red-600{% endif %}">
+                                    {% if transaction.transaction_type == 'deposit' %}+{% else %}-{% endif %}
+                                    UGX {{ "{:,.0f}".format(transaction.amount|float) if transaction.amount else '0' }}
+                                </div>
+                            </td>
+                            <td class="py-4 px-6">
+                                <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium
+                                    {% if transaction.status == 'completed' %}bg-green-100 text-green-800
+                                    {% elif transaction.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                    {% elif transaction.status == 'failed' %}bg-red-100 text-red-800
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    <i class="fas {% if transaction.status == 'completed' %}fa-check-circle{% elif transaction.status == 'pending' %}fa-clock{% else %}fa-times-circle{% endif %} mr-1.5 text-xs"></i>
+                                    {{ transaction.status|title|default('Pending') }}
+                                </span>
+                            </td>
+                            <td class="py-4 px-6">
+                                <div class="text-sm font-semibold text-gray-800">
+                                    {% if transaction.running_balance %}
+                                        UGX {{ "{:,.0f}".format(transaction.running_balance|float) }}
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="7" class="py-12 text-center">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                                        <i class="fas fa-exchange-alt text-2xl text-gray-400"></i>
+                                    </div>
+                                    <h4 class="text-lg font-medium text-gray-700 mb-2">No Transactions Yet</h4>
+                                    <p class="text-gray-500 max-w-md mb-6">
+                                        Start your savings journey by making your first deposit.
+                                    </p>
+                                    <button type="button" 
+                                            onclick="document.getElementById('amount').focus()"
+                                            class="inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-300 shadow-sm hover:shadow">
+                                        <i class="fas fa-plus-circle mr-2.5"></i>
+                                        Make First Deposit
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+        
+        {% if transactions|length > 10 %}
+        <div class="px-6 py-4 border-t border-gray-200">
+            <div class="flex justify-center">
+                <button class="inline-flex items-center px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors">
+                    <i class="fas fa-redo mr-2.5"></i>
+                    Load More Transactions
+                </button>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Savings Features Section -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Interest Earnings Card -->
+        <div class="bg-gradient-to-br from-emerald-50 to-green-50 border border-emerald-100 rounded-2xl p-6">
+            <div class="flex items-start mb-6">
+                <div class="bg-emerald-100 p-4 rounded-2xl mr-4">
+                    <i class="fas fa-chart-line text-2xl text-emerald-600"></i>
+                </div>
+                <div>
+                    <h4 class="text-lg font-bold text-gray-800">Interest Earnings</h4>
+                    <p class="text-sm text-gray-600 mt-1">Watch your money grow</p>
+                </div>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <p class="text-3xl font-bold text-emerald-600">{{ savings_account.interest_rate|float }}%</p>
+                    <p class="text-sm text-gray-600">Annual interest rate</p>
+                </div>
+                <div class="pt-4 border-t border-emerald-100">
+                    <p class="text-sm text-gray-600">
+                        Interest is calculated daily and credited to your account monthly.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Security Card -->
+        <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-6">
+            <div class="flex items-start mb-6">
+                <div class="bg-blue-100 p-4 rounded-2xl mr-4">
+                    <i class="fas fa-shield-alt text-2xl text-blue-600"></i>
+                </div>
+                <div>
+                    <h4 class="text-lg font-bold text-gray-800">Secure Savings</h4>
+                    <p class="text-sm text-gray-600 mt-1">Your funds are protected</p>
+                </div>
+            </div>
+            <div class="space-y-4">
+                <ul class="space-y-3">
+                    <li class="flex items-start">
+                        <i class="fas fa-check-circle text-emerald-500 mr-3 mt-0.5"></i>
+                        <span class="text-sm text-gray-700">Fully insured deposits</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-check-circle text-emerald-500 mr-3 mt-0.5"></i>
+                        <span class="text-sm text-gray-700">SACCO regulatory protection</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-check-circle text-emerald-500 mr-3 mt=0.5"></i>
+                        <span class="text-sm text-gray-700">Bank-grade security</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Instant Access Card -->
+        <div class="bg-gradient-to-br from-purple-50 to-violet-50 border border-purple-100 rounded-2xl p-6">
+            <div class="flex items-start mb-6">
+                <div class="bg-purple-100 p-4 rounded-2xl mr-4">
+                    <i class="fas fa-bolt text-2xl text-purple-600"></i>
+                </div>
+                <div>
+                    <h4 class="text-lg font-bold text-gray-800">Instant Access</h4>
+                    <p class="text-sm text-gray-600 mt-1">Your money when you need it</p>
+                </div>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <p class="text-lg font-bold text-gray-800">24/7 Availability</p>
+                    <p class="text-sm text-gray-600 mt-2">
+                        Access your savings anytime through our secure mobile platform.
+                    </p>
+                </div>
+                <div class="pt-4 border-t border-purple-100">
+                    <div class="flex items-center">
+                        <i class="fas fa-mobile-alt text-purple-500 mr-3"></i>
+                        <span class="text-sm text-gray-700">Mobile-first banking experience</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Set amount in deposit form
+    function setAmount(amount) {
+        const input = document.getElementById('amount');
+        input.value = amount;
+        input.focus();
+    }
+
+    // Filter transactions
+    document.getElementById('filterType').addEventListener('change', function() {
+        const filter = this.value.toLowerCase();
+        const rows = document.querySelectorAll('tbody tr');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            if (row.querySelector('td')) { // Skip empty rows
+                if (filter === 'all') {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    const typeCell = row.querySelector('td:nth-child(4) span');
+                    const type = typeCell ? typeCell.textContent.trim().toLowerCase() : '';
+                    if (type.includes(filter)) {
+                        row.style.display = '';
+                        visibleCount++;
+                    } else {
+                        row.style.display = 'none';
+                    }
+                }
+            }
+        });
+        
+        // Update count display
+        const countElement = document.querySelector('.text-sm.text-gray-600.mt-1');
+        if (countElement && visibleCount > 0) {
+            countElement.textContent = `${visibleCount} transactions found`;
+        }
+    });
+
+    // Fix for the input issue - Simplified formatting
+    function setupAmountInput() {
+        const input = document.getElementById('amount');
+        if (!input) return;
+
+        // Remove problematic input formatting that limited digits
+        // Only keep basic validation
+        input.addEventListener('blur', function(e) {
+            let value = parseFloat(e.target.value.replace(/,/g, ''));
+            if (!isNaN(value)) {
+                // Ensure it's within min bounds
+                const min = parseFloat(e.target.min) || 1000;
+                
+                if (value < min) {
+                    value = min;
+                    showAlert(`Minimum deposit is UGX ${min.toLocaleString('en-US')}`, 'warning');
+                }
+                
+                // Update value without formatting
+                e.target.value = value;
+            }
+        });
+
+        // Allow any number input without formatting interference
+        input.addEventListener('input', function(e) {
+            // Remove any non-digit characters except decimal point
+            let value = e.target.value.replace(/[^\d.]/g, '');
+            
+            // Remove extra decimal points
+            const parts = value.split('.');
+            if (parts.length > 2) {
+                value = parts[0] + '.' + parts.slice(1).join('');
+            }
+            
+            // Update the input value
+            e.target.value = value;
+        });
+    }
+
+    // Form validation
+    document.getElementById('depositForm').addEventListener('submit', function(e) {
+        const amountInput = document.getElementById('amount');
+        const amount = parseFloat(amountInput.value.replace(/,/g, ''));
+        
+        if (isNaN(amount)) {
+            e.preventDefault();
+            showAlert('Please enter a valid amount', 'error');
+            amountInput.focus();
+            return false;
+        }
+        
+        if (amount < 1000) {
+            e.preventDefault();
+            showAlert('Minimum deposit amount is UGX 1,000', 'warning');
+            amountInput.focus();
+            return false;
+        }
+        
+        // Update the input with the numeric value
+        amountInput.value = amount;
+        return true;
+    });
+
+    // Show alert function
+    function showAlert(message, type = 'info') {
+        // Remove existing alerts
+        const existingAlert = document.querySelector('.custom-alert');
+        if (existingAlert) {
+            existingAlert.remove();
+        }
+        
+        // Create alert element
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `custom-alert fixed top-4 right-4 z-50 px-6 py-4 rounded-xl shadow-lg transform transition-all duration-300 ${
+            type === 'error' ? 'bg-red-50 border border-red-200 text-red-700' :
+            type === 'warning' ? 'bg-yellow-50 border border-yellow-200 text-yellow-700' :
+            'bg-blue-50 border border-blue-200 text-blue-700'
+        }`;
+        
+        alertDiv.innerHTML = `
+            <div class="flex items-center">
+                <i class="fas ${
+                    type === 'error' ? 'fa-exclamation-circle' :
+                    type === 'warning' ? 'fa-exclamation-triangle' :
+                    'fa-info-circle'
+                } mr-3 text-lg"></i>
+                <span class="font-medium">${message}</span>
+                <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+        
+        document.body.appendChild(alertDiv);
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            if (alertDiv.parentNode) {
+                alertDiv.remove();
+            }
+        }, 5000);
+    }
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        setupAmountInput();
+        
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Ctrl/Cmd + D to focus deposit input
+            if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+                e.preventDefault();
+                const amountInput = document.getElementById('amount');
+                if (amountInput) {
+                    amountInput.focus();
+                }
+            }
+        });
+    });
+</script>
+
+<style>
+    /* Custom animations */
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    .custom-alert {
+        animation: slideIn 0.3s ease-out;
+    }
+    
+    /* Custom scrollbar for table */
+    .overflow-x-auto::-webkit-scrollbar {
+        height: 6px;
+    }
+    
+    .overflow-x-auto::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 3px;
+    }
+    
+    .overflow-x-auto::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 3px;
+    }
+    
+    .overflow-x-auto::-webkit-scrollbar-thumb:hover {
+        background: #a1a1a1;
+    }
+    
+    /* Selection styling */
+    ::selection {
+        background-color: rgba(16, 185, 129, 0.2);
+    }
+</style>
+{% endblock %}

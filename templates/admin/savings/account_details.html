@@ -1,0 +1,621 @@
+{% extends "adminbase.html" %}
+
+{% block title %}{{ account.account_number }} - LUNSERK SACCO Admin{% endblock %}
+
+{% block breadcrumb %}Savings / Accounts / {{ account.account_number }}{% endblock %}
+
+{% block page_title %}Savings Account Details{% endblock %}
+
+{% block page_subtitle %}Account: {{ account.account_number }} • Member: {{ member.full_name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Account Header -->
+    <div class="card-glass rounded-2xl p-6">
+        <div class="flex flex-col md:flex-row md:items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <div class="p-4 bg-blue-100 rounded-xl">
+                    <i class="fas fa-wallet text-blue-600 text-2xl"></i>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800">{{ account.account_name }}</h2>
+                    <div class="flex items-center space-x-2 mt-1">
+                        <span class="px-3 py-1 text-sm font-semibold rounded-full 
+                            {% if account.status == 'active' %}bg-green-100 text-green-800
+                            {% elif account.status == 'inactive' %}bg-yellow-100 text-yellow-800
+                            {% else %}bg-gray-100 text-gray-800{% endif %}">
+                            {{ account.status|title }}
+                        </span>
+                        <span class="text-gray-600">•</span>
+                        <span class="text-gray-600">{{ account.account_number }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-4 md:mt-0 flex space-x-3">
+                <a href="{{ url_for('savings.accounts') }}"
+                   class="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors">
+                    <i class="fas fa-arrow-left mr-2"></i> Back
+                </a>
+                <a href="{{ url_for('savings.new_deposit') }}?account={{ account.id }}"
+                   class="px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors">
+                    <i class="fas fa-plus-circle mr-2"></i> Deposit
+                </a>
+                <a href="{{ url_for('savings.new_withdrawal') }}?account={{ account.id }}"
+                   class="px-4 py-2 bg-yellow-600 text-white rounded-xl hover:bg-yellow-700 transition-colors">
+                    <i class="fas fa-minus-circle mr-2"></i> Withdraw
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="card-glass rounded-2xl p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600">Current Balance</p>
+                    <p class="text-2xl font-bold text-gray-800">UGX {{ "{:,.0f}".format(account.current_balance) }}</p>
+                </div>
+                <div class="p-3 bg-blue-100 rounded-lg">
+                    <i class="fas fa-money-bill-wave text-blue-600 text-xl"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card-glass rounded-2xl p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600">Available Balance</p>
+                    <p class="text-2xl font-bold text-gray-800">UGX {{ "{:,.0f}".format(account.available_balance) }}</p>
+                </div>
+                <div class="p-3 bg-green-100 rounded-lg">
+                    <i class="fas fa-hand-holding-usd text-green-600 text-xl"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card-glass rounded-2xl p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600">Interest Rate</p>
+                    <p class="text-2xl font-bold text-gray-800">{{ account.interest_rate }}%</p>
+                    <p class="text-xs text-gray-600">Per annum</p>
+                </div>
+                <div class="p-3 bg-purple-100 rounded-lg">
+                    <i class="fas fa-chart-line text-purple-600 text-xl"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card-glass rounded-2xl p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600">Minimum Balance</p>
+                    <p class="text-2xl font-bold text-gray-800">UGX {{ "{:,.0f}".format(account.minimum_balance) }}</p>
+                </div>
+                <div class="p-3 bg-orange-100 rounded-lg">
+                    <i class="fas fa-exclamation-circle text-orange-600 text-xl"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Account Information Tabs -->
+    <div class="card-glass rounded-2xl p-6">
+        <div class="border-b border-gray-200">
+            <nav class="-mb-px flex space-x-8">
+                <button onclick="showTab('transactions')" 
+                        class="tab-button py-4 px-1 border-b-2 font-medium text-sm active-tab">
+                    <i class="fas fa-exchange-alt mr-2"></i> Transactions
+                </button>
+                <button onclick="showTab('deposits')" 
+                        class="tab-button py-4 px-1 border-b-2 font-medium text-sm">
+                    <i class="fas fa-plus-circle mr-2"></i> Deposit Requests
+                </button>
+                <button onclick="showTab('withdrawals')" 
+                        class="tab-button py-4 px-1 border-b-2 font-medium text-sm">
+                    <i class="fas fa-minus-circle mr-2"></i> Withdrawal Requests
+                </button>
+                <button onclick="showTab('info')" 
+                        class="tab-button py-4 px-1 border-b-2 font-medium text-sm">
+                    <i class="fas fa-info-circle mr-2"></i> Account Info
+                </button>
+            </nav>
+        </div>
+        
+        <!-- Transactions Tab -->
+        <div id="transactions-tab" class="tab-content py-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-gray-800">Recent Transactions</h3>
+                <span class="text-sm text-gray-600">{{ transactions|length }} transaction(s)</span>
+            </div>
+            
+            {% if transactions %}
+            <div class="overflow-x-auto rounded-xl border border-gray-200">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Reference</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Balance</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for transaction in transactions %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                {{ transaction.created_at[:10] }}<br>
+                                <span class="text-xs text-gray-500">{{ transaction.created_at[11:16] }}</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 py-1 text-xs rounded-full 
+                                    {% if transaction.transaction_type == 'deposit' %}bg-green-100 text-green-800
+                                    {% elif transaction.transaction_type == 'withdrawal' %}bg-red-100 text-red-800
+                                    {% elif transaction.transaction_type == 'interest' %}bg-blue-100 text-blue-800
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {{ transaction.transaction_type|title }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {{ transaction.reference_number }}
+                                {% if transaction.description %}
+                                <br><span class="text-xs text-gray-500">{{ transaction.description }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium
+                                {% if transaction.transaction_type == 'deposit' or transaction.transaction_type == 'interest' %}text-green-600
+                                {% else %}text-red-600{% endif %}">
+                                {% if transaction.transaction_type == 'deposit' or transaction.transaction_type == 'interest' %}+{% else %}-{% endif %}
+                                UGX {{ "{:,.0f}".format(transaction.amount) }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                UGX {{ "{:,.0f}".format(transaction.balance_after) }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 py-1 text-xs rounded-full 
+                                    {% if transaction.status == 'completed' %}bg-green-100 text-green-800
+                                    {% elif transaction.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                    {% else %}bg-red-100 text-red-800{% endif %}">
+                                    {{ transaction.status|title }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-8">
+                <i class="fas fa-exchange-alt text-gray-400 text-4xl mb-3"></i>
+                <p class="text-gray-600">No transactions found for this account</p>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Deposits Tab -->
+        <div id="deposits-tab" class="tab-content py-6 hidden">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-gray-800">Deposit Requests</h3>
+                <a href="{{ url_for('savings.new_deposit') }}?account={{ account.id }}"
+                   class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm">
+                    <i class="fas fa-plus mr-1"></i> New Deposit
+                </a>
+            </div>
+            
+            {% if deposits %}
+            <div class="overflow-x-auto rounded-xl border border-gray-200">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Reference</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Method</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for deposit in deposits %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">{{ deposit.created_at[:10] }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ deposit.reference_number }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">
+                                UGX {{ "{:,.0f}".format(deposit.amount) }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">{{ deposit.payment_method|title }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 py-1 text-xs rounded-full 
+                                    {% if deposit.status == 'completed' %}bg-green-100 text-green-800
+                                    {% elif deposit.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                    {% elif deposit.status == 'processing' %}bg-blue-100 text-blue-800
+                                    {% else %}bg-red-100 text-red-800{% endif %}">
+                                    {{ deposit.status|title }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                {% if deposit.status == 'processing' and deposit.payment_method == 'cash' %}
+                                <button onclick="processCashDeposit('{{ deposit.id }}')"
+                                        class="text-blue-600 hover:text-blue-800 mr-3">
+                                    <i class="fas fa-check-circle"></i> Confirm
+                                </button>
+                                {% endif %}
+                                {% if deposit.payment_method == 'pesapal' and deposit.status == 'pending' %}
+                                <a href="{{ url_for('savings.process_pesapal_deposit', deposit_id=deposit.id) }}"
+                                   class="text-purple-600 hover:text-purple-800">
+                                    <i class="fas fa-credit-card"></i> Pay
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-8">
+                <i class="fas fa-plus-circle text-gray-400 text-4xl mb-3"></i>
+                <p class="text-gray-600">No deposit requests found</p>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Withdrawals Tab -->
+        <div id="withdrawals-tab" class="tab-content py-6 hidden">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-gray-800">Withdrawal Requests</h3>
+                <a href="{{ url_for('savings.new_withdrawal') }}?account={{ account.id }}"
+                   class="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm">
+                    <i class="fas fa-minus mr-1"></i> New Withdrawal
+                </a>
+            </div>
+            
+            {% if withdrawals %}
+            <div class="overflow-x-auto rounded-xl border border-gray-200">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Reference</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Method</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for withdrawal in withdrawals %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">{{ withdrawal.created_at[:10] }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ withdrawal.reference_number }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-red-600">
+                                UGX {{ "{:,.0f}".format(withdrawal.amount) }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">{{ withdrawal.withdrawal_method|title }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 py-1 text-xs rounded-full 
+                                    {% if withdrawal.status == 'completed' %}bg-green-100 text-green-800
+                                    {% elif withdrawal.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                    {% elif withdrawal.status == 'approved' %}bg-blue-100 text-blue-800
+                                    {% else %}bg-red-100 text-red-800{% endif %}">
+                                    {{ withdrawal.status|title }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                {% if withdrawal.status == 'pending' %}
+                                <button onclick="approveWithdrawal('{{ withdrawal.id }}')"
+                                        class="text-green-600 hover:text-green-800 mr-3">
+                                    <i class="fas fa-check"></i> Approve
+                                </button>
+                                <button onclick="showRejectModal('{{ withdrawal.id }}')"
+                                        class="text-red-600 hover:text-red-800">
+                                    <i class="fas fa-times"></i> Reject
+                                </button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-8">
+                <i class="fas fa-minus-circle text-gray-400 text-4xl mb-3"></i>
+                <p class="text-gray-600">No withdrawal requests found</p>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Account Info Tab -->
+        <div id="info-tab" class="tab-content py-6 hidden">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Account Information -->
+                <div>
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">Account Information</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <p class="text-sm text-gray-600">Account Number</p>
+                            <p class="font-medium">{{ account.account_number }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600">Account Name</p>
+                            <p class="font-medium">{{ account.account_name }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600">Account Type</p>
+                            <p class="font-medium">{{ account.account_type|title }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600">Interest Rate</p>
+                            <p class="font-medium">{{ account.interest_rate }}% per annum</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600">Minimum Balance</p>
+                            <p class="font-medium">UGX {{ "{:,.0f}".format(account.minimum_balance) }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600">Opened Date</p>
+                            <p class="font-medium">{{ account.opened_at[:10] if account.opened_at else 'N/A' }}</p>
+                        </div>
+                        {% if account.closed_at %}
+                        <div>
+                            <p class="text-sm text-gray-600">Closed Date</p>
+                            <p class="font-medium">{{ account.closed_at[:10] }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Member Information -->
+                <div>
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">Member Information</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <p class="text-sm text-gray-600">Member Name</p>
+                            <p class="font-medium">{{ member.full_name }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600">Member Number</p>
+                            <p class="font-medium">{{ member.member_number }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600">Email Address</p>
+                            <p class="font-medium">{{ member.email }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600">Phone Number</p>
+                            <p class="font-medium">{{ member.phone_number }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600">Date of Birth</p>
+                            <p class="font-medium">{{ member.date_of_birth }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600">NIN Number</p>
+                            <p class="font-medium">{{ member.nin_number or 'Not provided' }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reject Withdrawal Modal -->
+<div id="rejectModal" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+        <h3 class="text-lg font-bold text-gray-800 mb-4">Reject Withdrawal Request</h3>
+        <form id="rejectForm" class="space-y-4">
+            <input type="hidden" id="withdrawalId" name="withdrawal_id">
+            <div>
+                <label for="reason" class="block text-sm font-medium text-gray-700 mb-2">
+                    Reason for Rejection *
+                </label>
+                <textarea id="reason" name="reason" rows="3" required
+                          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="Enter the reason for rejecting this withdrawal request"></textarea>
+            </div>
+            <div class="flex justify-end space-x-3 pt-4">
+                <button type="button" onclick="hideRejectModal()"
+                        class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+                    Cancel
+                </button>
+                <button type="submit"
+                        class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+                    Reject Withdrawal
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Tab functionality
+    function showTab(tabName) {
+        // Hide all tab contents
+        document.querySelectorAll('.tab-content').forEach(tab => {
+            tab.classList.add('hidden');
+        });
+        
+        // Remove active class from all tabs
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.classList.remove('active-tab', 'border-blue-500', 'text-blue-600');
+            button.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+        });
+        
+        // Show selected tab content
+        document.getElementById(tabName + '-tab').classList.remove('hidden');
+        
+        // Add active class to selected tab
+        event.target.classList.add('active-tab', 'border-blue-500', 'text-blue-600');
+        event.target.classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+    }
+    
+    // Initialize first tab as active
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelector('.active-tab').classList.add('border-blue-500', 'text-blue-600');
+    });
+
+    // Process cash deposit
+    function processCashDeposit(depositId) {
+        if (!confirm('Confirm that you have received cash for this deposit?')) {
+            return;
+        }
+        
+        const button = event.target;
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Processing...';
+        button.disabled = true;
+        
+        fetch(`/admin/savings/deposit/${depositId}/process-cash`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showSuccessToast('Cash deposit processed successfully');
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                button.innerHTML = originalText;
+                button.disabled = false;
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            button.innerHTML = originalText;
+            button.disabled = false;
+            alert('Network error. Please try again.');
+        });
+    }
+
+    // Approve withdrawal
+    function approveWithdrawal(withdrawalId) {
+        if (!confirm('Approve this withdrawal request?')) {
+            return;
+        }
+        
+        fetch(`/admin/savings/withdrawal/${withdrawalId}/approve`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showSuccessToast('Withdrawal approved successfully');
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Network error. Please try again.');
+        });
+    }
+
+    // Reject withdrawal modal
+    let currentWithdrawalId = null;
+    
+    function showRejectModal(withdrawalId) {
+        currentWithdrawalId = withdrawalId;
+        document.getElementById('withdrawalId').value = withdrawalId;
+        document.getElementById('rejectModal').classList.remove('hidden');
+    }
+    
+    function hideRejectModal() {
+        document.getElementById('rejectModal').classList.add('hidden');
+        document.getElementById('rejectForm').reset();
+        currentWithdrawalId = null;
+    }
+    
+    // Handle reject form submission
+    document.getElementById('rejectForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const reason = formData.get('reason');
+        
+        if (!reason.trim()) {
+            alert('Please enter a rejection reason');
+            return;
+        }
+        
+        fetch(`/admin/savings/withdrawal/${currentWithdrawalId}/reject`, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showSuccessToast('Withdrawal rejected successfully');
+                hideRejectModal();
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Network error. Please try again.');
+        });
+    });
+
+    // Toast notification
+    function showSuccessToast(message) {
+        const toast = document.createElement('div');
+        toast.className = 'fixed top-4 right-4 z-50 px-6 py-3 bg-green-50 text-green-700 rounded-xl shadow-lg border-l-4 border-green-500 transform transition-all duration-300 translate-x-full';
+        toast.innerHTML = `
+            <div class="flex items-center">
+                <i class="fas fa-check-circle mr-3 text-lg"></i>
+                <span>${message}</span>
+            </div>
+        `;
+        
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.classList.remove('translate-x-full');
+            toast.classList.add('translate-x-0');
+        }, 10);
+        
+        setTimeout(() => {
+            toast.classList.remove('translate-x-0');
+            toast.classList.add('translate-x-full');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+</script>
+
+<style>
+    .tab-button {
+        transition: all 0.2s ease;
+    }
+    
+    .tab-button.active-tab {
+        border-color: #3b82f6;
+        color: #2563eb;
+    }
+    
+    .tab-content {
+        animation: fadeIn 0.3s ease;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
+{% endblock %}

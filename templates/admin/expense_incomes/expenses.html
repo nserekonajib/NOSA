@@ -1,0 +1,457 @@
+{% extends "adminbase.html" %}
+
+{% block title %}Expenses - LUNSERK SACCO Admin{% endblock %}
+
+{% block breadcrumb %}Expenses & Incomes / Expenses{% endblock %}
+
+{% block page_title %}Expense Management{% endblock %}
+
+{% block page_subtitle %}Track and manage all SACCO expenses{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header with Filters -->
+    <div class="card-glass rounded-2xl p-6">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+            <div>
+                <h2 class="text-lg font-bold text-gray-800">All Expenses</h2>
+                <p class="text-sm text-gray-600">Total: UGX {{ "{:,.0f}".format(total_amount) }}</p>
+            </div>
+            
+            <a href="{{ url_for('expense_incomes.add_expense') }}" 
+               class="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all hover-lift">
+                <i class="fas fa-plus mr-2"></i> Add Expense
+            </a>
+        </div>
+        
+        <!-- Filters -->
+        <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+                <input type="date" name="start_date" value="{{ start_date }}"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">End Date</label>
+                <input type="date" name="end_date" value="{{ end_date }}"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                <select name="category_id" 
+                        class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">All Categories</option>
+                    {% for category in categories %}
+                    <option value="{{ category.id }}" {% if category_id == category.id %}selected{% endif %}>
+                        {{ category.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                <select name="status"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">All Status</option>
+                    <option value="approved" {% if status == 'approved' %}selected{% endif %}>Approved</option>
+                    <option value="pending" {% if status == 'pending' %}selected{% endif %}>Pending</option>
+                    <option value="rejected" {% if status == 'rejected' %}selected{% endif %}>Rejected</option>
+                </select>
+            </div>
+            
+            <div class="md:col-span-4 flex gap-3 justify-end">
+                <a href="{{ url_for('expense_incomes.expenses_list') }}" 
+                   class="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50">
+                    Clear Filters
+                </a>
+                <button type="submit" 
+                        class="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800">
+                    Apply Filters
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Expenses Table -->
+    <div class="card-glass rounded-2xl overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Expense #</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Payment Method</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for expense in expenses %}
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-6 py-4 text-sm text-gray-500">
+                            {{ expense.payment_date }}
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm font-medium text-gray-900">
+                                {{ expense.expense_number }}
+                            </div>
+                            {% if expense.reference_number %}
+                            <div class="text-xs text-gray-500">
+                                Ref: {{ expense.reference_number }}
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-900">
+                            {{ expense.expense_categories.name if expense.expense_categories else 'N/A' }}
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm text-gray-900">{{ expense.description or 'No description' }}</div>
+                            {% if expense.paid_to %}
+                            <div class="text-xs text-gray-500">Paid to: {{ expense.paid_to }}</div>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-lg font-bold text-red-600">
+                                UGX {{ "{:,.0f}".format(expense.amount|float) }}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-900">
+                            {{ expense.payment_method|replace('_', ' ')|title }}
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium
+                                {% if expense.status == 'approved' %}bg-green-100 text-green-800
+                                {% elif expense.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                {% else %}bg-red-100 text-red-800{% endif %}">
+                                {% if expense.status == 'approved' %}
+                                <i class="fas fa-check-circle mr-1"></i>
+                                {% elif expense.status == 'pending' %}
+                                <i class="fas fa-clock mr-1"></i>
+                                {% else %}
+                                <i class="fas fa-times-circle mr-1"></i>
+                                {% endif %}
+                                {{ expense.status|title }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-sm font-medium">
+                            <div class="flex items-center space-x-2">
+                                <button onclick="viewExpenseDetails('{{ expense.id }}')" 
+                                        class="text-blue-600 hover:text-blue-900">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button onclick="editExpense('{{ expense.id }}')" 
+                                        class="text-green-600 hover:text-green-900">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                {% if expense.status == 'pending' %}
+                                <button onclick="approveExpense('{{ expense.id }}')" 
+                                        class="text-green-600 hover:text-green-900">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                <button onclick="rejectExpense('{{ expense.id }}')" 
+                                        class="text-red-600 hover:text-red-900">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="px-6 py-12 text-center">
+                            <div class="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                                <i class="fas fa-receipt text-gray-400 text-2xl"></i>
+                            </div>
+                            <h3 class="text-lg font-bold text-gray-700 mb-2">No Expenses Found</h3>
+                            <p class="text-gray-600 mb-6">No expenses match your current filters</p>
+                            <a href="{{ url_for('expense_incomes.add_expense') }}" 
+                               class="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all inline-block">
+                                <i class="fas fa-plus mr-2"></i> Add Your First Expense
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- View Expense Modal -->
+<div id="viewExpenseModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-2xl p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+        <h3 class="text-lg font-bold text-gray-800 mb-4">Expense Details</h3>
+        <div id="expenseDetailsContent">
+            <!-- Content will be loaded here -->
+        </div>
+        <div class="flex justify-end mt-6">
+            <button type="button" onclick="closeModal('viewExpenseModal')" 
+                    class="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Approve/Reject Modals -->
+<div id="approveExpenseModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-2xl p-6 max-w-md w-full mx-4">
+        <h3 class="text-lg font-bold text-gray-800 mb-4">Approve Expense</h3>
+        <form id="approveExpenseForm">
+            <input type="hidden" id="approveExpenseId" name="expense_id">
+            <div class="mb-4">
+                <label for="approveNotes" class="block text-sm font-medium text-gray-700 mb-2">
+                    Approval Notes (Optional)
+                </label>
+                <textarea id="approveNotes" name="notes" rows="3"
+                          class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
+            </div>
+            <div class="flex justify-end space-x-3">
+                <button type="button" onclick="closeModal('approveExpenseModal')" 
+                        class="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50">
+                    Cancel
+                </button>
+                <button type="submit" 
+                        class="px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700">
+                    Approve Expense
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="rejectExpenseModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-2xl p-6 max-w-md w-full mx-4">
+        <h3 class="text-lg font-bold text-gray-800 mb-4">Reject Expense</h3>
+        <form id="rejectExpenseForm">
+            <input type="hidden" id="rejectExpenseId" name="expense_id">
+            <div class="mb-4">
+                <label for="rejectReason" class="block text-sm font-medium text-gray-700 mb-2">
+                    Reason for Rejection *
+                </label>
+                <textarea id="rejectReason" name="reason" rows="3" required
+                          class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
+            </div>
+            <div class="flex justify-end space-x-3">
+                <button type="button" onclick="closeModal('rejectExpenseModal')" 
+                        class="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50">
+                    Cancel
+                </button>
+                <button type="submit" 
+                        class="px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700">
+                    Reject Expense
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Modal functions
+    function openModal(modalId) {
+        document.getElementById(modalId).classList.remove('hidden');
+    }
+    
+    function closeModal(modalId) {
+        document.getElementById(modalId).classList.add('hidden');
+    }
+    
+    // View expense details
+    function viewExpenseDetails(expenseId) {
+        // In a real implementation, you would fetch expense details from the server
+        // For now, we'll show a placeholder
+        document.getElementById('expenseDetailsContent').innerHTML = `
+            <div class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-gray-50 p-3 rounded-lg">
+                        <p class="text-xs text-gray-600">Expense Number</p>
+                        <p class="font-medium text-gray-800">Loading...</p>
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded-lg">
+                        <p class="text-xs text-gray-600">Payment Date</p>
+                        <p class="font-medium text-gray-800">Loading...</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-gray-50 p-3 rounded-lg">
+                        <p class="text-xs text-gray-600">Category</p>
+                        <p class="font-medium text-gray-800">Loading...</p>
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded-lg">
+                        <p class="text-xs text-gray-600">Amount</p>
+                        <p class="font-medium text-gray-800">Loading...</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-gray-50 p-3 rounded-lg">
+                        <p class="text-xs text-gray-600">Payment Method</p>
+                        <p class="font-medium text-gray-800">Loading...</p>
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded-lg">
+                        <p class="text-xs text-gray-600">Status</p>
+                        <p class="font-medium text-gray-800">Loading...</p>
+                    </div>
+                </div>
+                <div class="bg-gray-50 p-3 rounded-lg">
+                    <p class="text-xs text-gray-600">Description</p>
+                    <p class="font-medium text-gray-800">Loading...</p>
+                </div>
+            </div>
+        `;
+        openModal('viewExpenseModal');
+        
+        // Fetch actual data
+        fetch(`/admin/expense_incomes/api/expense/${expenseId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const expense = data.expense;
+                    document.getElementById('expenseDetailsContent').innerHTML = `
+                        <div class="space-y-4">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="bg-gray-50 p-3 rounded-lg">
+                                    <p class="text-xs text-gray-600">Expense Number</p>
+                                    <p class="font-medium text-gray-800">${expense.expense_number}</p>
+                                </div>
+                                <div class="bg-gray-50 p-3 rounded-lg">
+                                    <p class="text-xs text-gray-600">Payment Date</p>
+                                    <p class="font-medium text-gray-800">${expense.payment_date}</p>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="bg-gray-50 p-3 rounded-lg">
+                                    <p class="text-xs text-gray-600">Category</p>
+                                    <p class="font-medium text-gray-800">${expense.expense_categories?.name || 'N/A'}</p>
+                                </div>
+                                <div class="bg-gray-50 p-3 rounded-lg">
+                                    <p class="text-xs text-gray-600">Amount</p>
+                                    <p class="font-medium text-red-600">UGX ${parseFloat(expense.amount).toLocaleString()}</p>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="bg-gray-50 p-3 rounded-lg">
+                                    <p class="text-xs text-gray-600">Payment Method</p>
+                                    <p class="font-medium text-gray-800">${expense.payment_method.replace('_', ' ').toUpperCase()}</p>
+                                </div>
+                                <div class="bg-gray-50 p-3 rounded-lg">
+                                    <p class="text-xs text-gray-600">Status</p>
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${expense.status === 'approved' ? 'bg-green-100 text-green-800' : expense.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}">
+                                        ${expense.status.toUpperCase()}
+                                    </span>
+                                </div>
+                            </div>
+                            ${expense.paid_to ? `
+                            <div class="bg-gray-50 p-3 rounded-lg">
+                                <p class="text-xs text-gray-600">Paid To</p>
+                                <p class="font-medium text-gray-800">${expense.paid_to}</p>
+                            </div>
+                            ` : ''}
+                            ${expense.reference_number ? `
+                            <div class="bg-gray-50 p-3 rounded-lg">
+                                <p class="text-xs text-gray-600">Reference Number</p>
+                                <p class="font-medium text-gray-800">${expense.reference_number}</p>
+                            </div>
+                            ` : ''}
+                            <div class="bg-gray-50 p-3 rounded-lg">
+                                <p class="text-xs text-gray-600">Description</p>
+                                <p class="font-medium text-gray-800">${expense.description || 'No description'}</p>
+                            </div>
+                            ${expense.notes ? `
+                            <div class="bg-gray-50 p-3 rounded-lg">
+                                <p class="text-xs text-gray-600">Notes</p>
+                                <p class="font-medium text-gray-800">${expense.notes}</p>
+                            </div>
+                            ` : ''}
+                            <div class="bg-gray-50 p-3 rounded-lg">
+                                <p class="text-xs text-gray-600">Created</p>
+                                <p class="font-medium text-gray-800">${expense.created_at ? expense.created_at.slice(0, 19).replace('T', ' ') : 'N/A'}</p>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('expenseDetailsContent').innerHTML = `
+                        <div class="text-center py-8">
+                            <i class="fas fa-exclamation-triangle text-yellow-500 text-4xl mb-4"></i>
+                            <p class="text-gray-600">Error loading expense details</p>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('expenseDetailsContent').innerHTML = `
+                    <div class="text-center py-8">
+                        <i class="fas fa-exclamation-triangle text-red-500 text-4xl mb-4"></i>
+                        <p class="text-gray-600">Error loading expense details</p>
+                    </div>
+                `;
+            });
+    }
+    
+    // Edit expense
+    function editExpense(expenseId) {
+        window.location.href = `/admin/expense_incomes/expenses/edit/${expenseId}`;
+    }
+    
+    // Approve expense
+    function approveExpense(expenseId) {
+        document.getElementById('approveExpenseId').value = expenseId;
+        openModal('approveExpenseModal');
+    }
+    
+    // Reject expense
+    function rejectExpense(expenseId) {
+        document.getElementById('rejectExpenseId').value = expenseId;
+        openModal('rejectExpenseModal');
+    }
+    
+    // Form submissions
+    document.getElementById('approveExpenseForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const expenseId = document.getElementById('approveExpenseId').value;
+        const notes = document.getElementById('approveNotes').value;
+        
+        // In a real implementation, you would send this to your server
+        alert(`Approving expense ${expenseId} with notes: ${notes}`);
+        closeModal('approveExpenseModal');
+        location.reload();
+    });
+    
+    document.getElementById('rejectExpenseForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const expenseId = document.getElementById('rejectExpenseId').value;
+        const reason = document.getElementById('rejectReason').value;
+        
+        // In a real implementation, you would send this to your server
+        alert(`Rejecting expense ${expenseId} with reason: ${reason}`);
+        closeModal('rejectExpenseModal');
+        location.reload();
+    });
+</script>
+
+<style>
+    table {
+        min-width: 1000px;
+    }
+    
+    @media (min-width: 768px) {
+        table {
+            min-width: 0;
+        }
+    }
+    
+    .hover-lift {
+        transition: transform 0.2s ease-in-out;
+    }
+    
+    .hover-lift:hover {
+        transform: translateY(-2px);
+    }
+</style>
+{% endblock %}

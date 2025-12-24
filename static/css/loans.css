@@ -1,0 +1,42 @@
+/* Loans specific styles */
+.loan-card {
+    transition: transform 0.2s;
+    border-left: 4px solid #0d6efd;
+}
+
+.loan-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.loan-status-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
+
+.payment-schedule td, .payment-schedule th {
+    padding: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.repayment-progress {
+    height: 6px;
+    border-radius: 3px;
+}
+
+.interest-rate-badge {
+    background: linear-gradient(45deg, #ff6b6b, #ffa726);
+    color: white;
+}
+
+.loan-summary-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+}
+
+/* Sidebar active state */
+.sidebar .nav-link.active {
+    background-color: rgba(13, 110, 253, 0.1);
+    border-left: 3px solid #0d6efd;
+}

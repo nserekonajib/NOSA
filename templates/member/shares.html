@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+
+{% block title %}Purchase Shares - LUNSERK SACCO{% endblock %}
+
+{% block page_title %}Purchase Shares{% endblock %}
+
+{% block page_subtitle %}Invest in SACCO shares and grow your ownership{% endblock %}
+
+{% block breadcrumb %}
+    <li class="inline-flex items-center">
+        <a href="{{ url_for('member.dashboard') }}" class="inline-flex items-center text-sm text-gray-700 hover:text-blue-600">
+            <i class="fas fa-home mr-2"></i>
+            Dashboard
+        </a>
+    </li>
+    <li aria-hidden="true">
+        <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+    </li>
+    <li class="inline-flex items-center">
+        <span class="text-gray-500">Shares</span>
+    </li>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Share Information -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <!-- Current Share Status -->
+        <div class="col-span-2 bg-white rounded-xl shadow-lg p-6">
+            <h3 class="text-xl font-bold text-gray-800 mb-6">Share Information</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-blue-50 p-4 rounded-lg">
+                    <p class="text-sm text-gray-500">Current Share Price</p>
+                    <p class="text-2xl font-bold text-blue-600 mt-1">
+                        UGX {{ "{:,.0f}".format(share_value.value_per_share|float) }}
+                    </p>
+                    <p class="text-xs text-gray-500 mt-1">Effective since {{ share_value.effective_date }}</p>
+                </div>
+                <div class="bg-green-50 p-4 rounded-lg">
+                    <p class="text-sm text-gray-500">Your Current Shares</p>
+                    <p class="text-2xl font-bold text-green-600 mt-1">{{ member.shares_owned }}</p>
+                    <p class="text-xs text-gray-500 mt-1">
+                        Value: UGX {{ "{:,.0f}".format(member.shares_owned|int * share_value.value_per_share|float) }}
+                    </p>
+                </div>
+                <div class="md:col-span-2 bg-gray-50 p-4 rounded-lg">
+                    <p class="text-sm text-gray-500">About SACCO Shares</p>
+                    <p class="text-sm text-gray-700 mt-2">
+                        SACCO shares represent your ownership in the cooperative. Shareholders receive dividends 
+                        based on SACCO profits and have voting rights in annual general meetings.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Purchase Shares -->
+        <div class="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-100 rounded-xl p-6">
+            <h3 class="text-xl font-bold text-gray-800 mb-6">Purchase Shares</h3>
+            
+            <!-- Quick Purchase Buttons -->
+            <div class="grid grid-cols-2 gap-3 mb-6">
+                <button type="button" onclick="setShares(10)" 
+                    class="bg-white border border-purple-200 rounded-lg p-3 text-center hover:bg-purple-50 transition-colors">
+                    <p class="font-bold text-purple-600">10 Shares</p>
+                    <p class="text-xs text-gray-500">
+                        UGX {{ "{:,.0f}".format(10 * share_value.value_per_share|float) }}
+                    </p>
+                </button>
+                <button type="button" onclick="setShares(20)" 
+                    class="bg-white border border-purple-200 rounded-lg p-3 text-center hover:bg-purple-50 transition-colors">
+                    <p class="font-bold text-purple-600">20 Shares</p>
+                    <p class="text-xs text-gray-500">
+                        UGX {{ "{:,.0f}".format(20 * share_value.value_per_share|float) }}
+                    </p>
+                </button>
+                <button type="button" onclick="setShares(50)" 
+                    class="bg-white border border-purple-200 rounded-lg p-3 text-center hover:bg-purple-50 transition-colors">
+                    <p class="font-bold text-purple-600">50 Shares</p>
+                    <p class="text-xs text-gray-500">
+                        UGX {{ "{:,.0f}".format(50 * share_value.value_per_share|float) }}
+                    </p>
+                </button>
+                <button type="button" onclick="setShares(100)" 
+                    class="bg-white border border-purple-200 rounded-lg p-3 text-center hover:bg-purple-50 transition-colors">
+                    <p class="font-bold text-purple-600">100 Shares</p>
+                    <p class="text-xs text-gray-500">
+                        UGX {{ "{:,.0f}".format(100 * share_value.value_per_share|float) }}
+                    </p>
+                </button>
+            </div>
+
+            <!-- Purchase Form -->
+            <form method="POST" action="{{ url_for('member.purchase_shares') }}">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Number of Shares
+                    </label>
+                    <input type="number" 
+                           name="shares" 
+                           id="sharesInput"
+                           min="1"
+                           step="1"
+                           required
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                           placeholder="Enter number of shares">
+                </div>
+                
+                <div class="mb-6 p-4 bg-white rounded-lg border border-gray-200">
+                    <div class="flex justify-between mb-2">
+                        <span class="text-sm text-gray-600">Share Price:</span>
+                        <span class="font-semibold">UGX {{ "{:,.0f}".format(share_value.value_per_share|float) }}/share</span>
+                    </div>
+                    <div class="flex justify-between mb-2">
+                        <span class="text-sm text-gray-600">Number of Shares:</span>
+                        <span id="sharesCount" class="font-semibold">0</span>
+                    </div>
+                    <div class="flex justify-between text-lg font-bold text-purple-600 pt-2 border-t border-gray-200">
+                        <span>Total Amount:</span>
+                        <span id="totalAmount">UGX 0</span>
+                    </div>
+                </div>
+                
+                <button type="submit" 
+                        class="w-full bg-gradient-to-r from-purple-600 to-purple-700 text-white font-medium py-3 px-4 rounded-lg hover:from-purple-700 hover:to-purple-800 transition-all duration-300 flex items-center justify-center">
+                    <i class="fas fa-shopping-cart mr-2"></i>
+                    Purchase via PesaPal
+                </button>
+                
+                <p class="text-xs text-gray-500 mt-4 text-center">
+                    <i class="fas fa-lock mr-1"></i>
+                    Secure payment powered by PesaPal
+                </p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Share Transaction History -->
+    <div class="bg-white rounded-xl shadow-lg p-6">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold text-gray-800">Transaction History</h3>
+            <div class="text-sm text-gray-600">
+                {{ transactions|length }} Transactions
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="bg-gray-50">
+                        <th class="py-3 px-4 text-left text-sm font-medium text-gray-700">Date</th>
+                        <th class="py-3 px-4 text-left text-sm font-medium text-gray-700">Transaction</th>
+                        <th class="py-3 px-4 text-left text-sm font-medium text-gray-700">Shares</th>
+                        <th class="py-3 px-4 text-left text-sm font-medium text-gray-700">Price/Share</th>
+                        <th class="py-3 px-4 text-left text-sm font-medium text-gray-700">Total Amount</th>
+                        <th class="py-3 px-4 text-left text-sm font-medium text-gray-700">Reference</th>
+                        <th class="py-3 px-4 text-left text-sm font-medium text-gray-700">Notes</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% if transactions|length > 0 %}
+                        {% for transaction in transactions %}
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="py-3 px-4 text-sm">
+                                {{ transaction.transaction_date[:10] }}
+                            </td>
+                            <td class="py-3 px-4">
+                                <span class="px-3 py-1 rounded-full text-xs font-medium 
+                                    {% if transaction.transaction_type == 'purchase' %}bg-green-100 text-green-800
+                                    {% elif transaction.transaction_type == 'sale' %}bg-red-100 text-red-800
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {{ transaction.transaction_type|title }}
+                                </span>
+                            </td>
+                            <td class="py-3 px-4 text-sm font-medium">
+                                {{ transaction.shares|int }}
+                            </td>
+                            <td class="py-3 px-4 text-sm">
+                                UGX {{ "{:,.0f}".format(transaction.price_per_share|float) }}
+                            </td>
+                            <td class="py-3 px-4 text-sm font-bold 
+                                {% if transaction.transaction_type == 'purchase' %}text-red-600
+                                {% else %}text-green-600{% endif %}">
+                                {% if transaction.transaction_type == 'purchase' %}-{% else %}+{% endif %}
+                                UGX {{ "{:,.0f}".format(transaction.total_amount|float) }}
+                            </td>
+                            <td class="py-3 px-4 text-sm text-gray-600">
+                                {{ transaction.reference|default('N/A') }}
+                            </td>
+                            <td class="py-3 px-4 text-sm text-gray-600">
+                                {{ transaction.notes|truncate(50) }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="7" class="py-8 text-center text-gray-500">
+                                <i class="fas fa-exchange-alt text-4xl mb-3 opacity-20"></i>
+                                <p>No share transactions found</p>
+                                <p class="text-sm mt-2">Purchase your first shares to get started!</p>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Benefits of Owning Shares -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+        <div class="bg-blue-50 border border-blue-100 rounded-xl p-6">
+            <div class="flex items-center mb-4">
+                <div class="bg-blue-100 p-3 rounded-full mr-4">
+                    <i class="fas fa-money-bill-wave text-blue-600"></i>
+                </div>
+                <div>
+                    <h4 class="font-bold text-gray-800">Dividends</h4>
+                    <p class="text-sm text-gray-600">Receive annual dividends</p>
+                </div>
+            </div>
+            <p class="text-sm text-gray-600">Shareholders receive dividends based on SACCO profits at the end of each financial year.</p>
+        </div>
+
+        <div class="bg-green-50 border border-green-100 rounded-xl p-6">
+            <div class="flex items-center mb-4">
+                <div class="bg-green-100 p-3 rounded-full mr-4">
+                    <i class="fas fa-vote-yea text-green-600"></i>
+                </div>
+                <div>
+                    <h4 class="font-bold text-gray-800">Voting Rights</h4>
+                    <p class="text-sm text-gray-600">Participate in decision making</p>
+                </div>
+            </div>
+            <p class="text-sm text-gray-600">Each share gives you voting rights in annual general meetings and special resolutions.</p>
+        </div>
+
+        <div class="bg-purple-50 border border-purple-100 rounded-xl p-6">
+            <div class="flex items-center mb-4">
+                <div class="bg-purple-100 p-3 rounded-full mr-4">
+                    <i class="fas fa-hand-holding-usd text-purple-600"></i>
+                </div>
+                <div>
+                    <h4 class="font-bold text-gray-800">Loan Eligibility</h4>
+                    <p class="text-sm text-gray-600">Higher loan limits</p>
+                </div>
+            </div>
+            <p class="text-sm text-gray-600">More shares increase your loan eligibility and credit limits with the SACCO.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    const sharePrice = {{ share_value.value_per_share|float }};
+    
+    function setShares(number) {
+        document.getElementById('sharesInput').value = number;
+        calculateTotal();
+    }
+    
+    function calculateTotal() {
+        const sharesInput = document.getElementById('sharesInput');
+        const shares = parseInt(sharesInput.value) || 0;
+        const total = shares * sharePrice;
+        
+        document.getElementById('sharesCount').textContent = shares;
+        document.getElementById('totalAmount').textContent = 'UGX ' + total.toLocaleString('en-US');
+    }
+    
+    // Calculate on input change
+    document.getElementById('sharesInput').addEventListener('input', calculateTotal);
+    
+    // Calculate on page load
+    document.addEventListener('DOMContentLoaded', calculateTotal);
+</script>
+{% endblock %}

@@ -1,0 +1,397 @@
+{% extends "adminbase.html" %}
+
+{% block title %}Loan Repayments - LUNSERK SACCO Admin{% endblock %}
+
+{% block breadcrumb %}Loans / Repayments{% endblock %}
+
+{% block page_title %}Loan Repayments{% endblock %}
+
+{% block page_subtitle %}Manage and track loan repayments{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header with Summary -->
+    <div class="card-glass rounded-2xl p-6">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+                <h2 class="text-lg font-bold text-gray-800">Loan Repayments</h2>
+                <p class="text-sm text-gray-600">{{ repayments|length }} installment(s) found</p>
+            </div>
+            <!-- Add this to the header section of repayments.html -->
+<div class="flex gap-3">
+    <a href="{{ url_for('loans.add_repayment') }}" 
+       class="px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 transition-all hover-lift">
+        <i class="fas fa-plus mr-2"></i> Add Repayment
+    </a>
+</div>
+            
+            <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                <!-- Search -->
+                <div class="relative flex-1 sm:flex-none">
+                    <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    <input type="text" id="searchInput" placeholder="Search repayments..." 
+                           value="{{ search }}"
+                           class="pl-10 pr-4 py-2 border border-gray-300 rounded-xl w-full focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+                
+                <!-- Status Filter -->
+                <select id="statusFilter" 
+                        class="px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">All Status</option>
+                    <option value="pending" {% if status == 'pending' %}selected{% endif %}>Pending</option>
+                    <option value="paid" {% if status == 'paid' %}selected{% endif %}>Paid</option>
+                    <option value="overdue" {% if status == 'overdue' %}selected{% endif %}>Overdue</option>
+                </select>
+            </div>
+        </div>
+        
+        <!-- Summary Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+            <div class="bg-blue-50 p-4 rounded-xl">
+                <p class="text-sm text-gray-600">Total Due</p>
+                <p class="text-xl font-bold text-gray-800">UGX {{ "{:,.0f}".format(total_due) }}</p>
+            </div>
+            <div class="bg-green-50 p-4 rounded-xl">
+                <p class="text-sm text-gray-600">Total Paid</p>
+                <p class="text-xl font-bold text-gray-800">UGX {{ "{:,.0f}".format(total_paid) }}</p>
+            </div>
+            <div class="bg-yellow-50 p-4 rounded-xl">
+                <p class="text-sm text-gray-600">Pending Amount</p>
+                <p class="text-xl font-bold text-gray-800">UGX {{ "{:,.0f}".format(total_due - total_paid) }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Repayments Table -->
+    <div class="card-glass rounded-2xl overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Member</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Installment</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Due Date</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Paid</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for repayment in repayments %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0">
+                                    <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                                        <i class="fas fa-user text-blue-600 text-xs"></i>
+                                    </div>
+                                </div>
+                                <div class="ml-3">
+                                    <div class="text-sm font-medium text-gray-900">
+                                        {{ repayment.members.full_name }}
+                                    </div>
+                                    <div class="text-xs text-gray-500">
+                                        {{ repayment.members.member_number }}
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-900">
+                            #{{ repayment.installment_number }}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-500">
+                            {{ repayment.due_date }}
+                            {% if repayment.late_days and repayment.late_days > 0 %}
+                            <span class="text-xs text-red-600 ml-2">(+{{ repayment.late_days }} days)</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm font-medium text-gray-900">
+                                UGX {{ "{:,.0f}".format(repayment.due_amount|float) }}
+                            </div>
+                            {% if repayment.late_fee and repayment.late_fee|float > 0 %}
+                            <div class="text-xs text-red-600">
+                                +UGX {{ "{:,.0f}".format(repayment.late_fee|float) }} late fee
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-900">
+                            UGX {{ "{:,.0f}".format(repayment.paid_amount|float) if repayment.paid_amount else '0' }}
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium
+                                {% if repayment.status == 'paid' %}bg-green-100 text-green-800
+                                {% elif repayment.status == 'overdue' %}bg-red-100 text-red-800
+                                {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                {% if repayment.status == 'paid' %}
+                                <i class="fas fa-check-circle mr-1"></i>
+                                {% elif repayment.status == 'overdue' %}
+                                <i class="fas fa-exclamation-circle mr-1"></i>
+                                {% else %}
+                                <i class="fas fa-clock mr-1"></i>
+                                {% endif %}
+                                {{ repayment.status|title }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-sm font-medium">
+                            {% if repayment.status != 'paid' %}
+                            <button onclick="recordRepayment('{{ repayment.id }}', {{ repayment.due_amount|float }})" 
+                                    class="text-blue-600 hover:text-blue-900">
+                                <i class="fas fa-money-bill mr-1"></i> Record
+                            </button>
+                            {% else %}
+                            <span class="text-gray-400">Paid on {{ repayment.paid_date }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="px-6 py-12 text-center">
+                            <div class="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                                <i class="fas fa-history text-gray-400 text-2xl"></i>
+                            </div>
+                            <h3 class="text-lg font-bold text-gray-700 mb-2">No Repayments</h3>
+                            <p class="text-gray-600">No repayments found matching your criteria</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+
+<script>
+    // DOM elements
+    const repaymentModal = document.getElementById('repaymentModal');
+    const recordRepaymentForm = document.getElementById('recordRepaymentForm');
+    const paidAmountInput = document.getElementById('paidAmount');
+    const amountDueInfo = document.getElementById('amountDueInfo');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    const errorMessage = document.getElementById('errorMessage');
+    const errorText = document.getElementById('errorText');
+    const submitButton = document.getElementById('submitButton');
+    
+    let currentRepaymentId = null;
+    let currentDueAmount = 0;
+    
+    // Function to open modal
+    function recordRepayment(repaymentId, dueAmount) {
+        currentRepaymentId = repaymentId;
+        currentDueAmount = dueAmount;
+        
+        // Reset form
+        recordRepaymentForm.reset();
+        document.getElementById('repaymentId').value = repaymentId;
+        document.getElementById('paymentDate').value = new Date().toISOString().split('T')[0];
+        
+        // Set amount info
+        amountDueInfo.textContent = `UGX ${currentDueAmount.toLocaleString()}`;
+        paidAmountInput.value = currentDueAmount;
+        paidAmountInput.max = currentDueAmount;
+        paidAmountInput.min = 100;
+        
+        // Show modal
+        repaymentModal.classList.remove('hidden');
+        errorMessage.classList.add('hidden');
+        
+        // Focus on first input
+        setTimeout(() => paidAmountInput.focus(), 100);
+    }
+    
+    // Function to close modal
+    function closeModal() {
+        repaymentModal.classList.add('hidden');
+        currentRepaymentId = null;
+        currentDueAmount = 0;
+    }
+    
+    // Close modal when clicking outside
+    repaymentModal.addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeModal();
+        }
+    });
+    
+    // Validate amount input
+    paidAmountInput.addEventListener('input', function() {
+        const value = parseFloat(this.value) || 0;
+        if (value > currentDueAmount) {
+            this.value = currentDueAmount;
+        }
+        if (value < 100 && value > 0) {
+            this.value = 100;
+        }
+    });
+    
+    // Handle form submission
+    recordRepaymentForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        // Validate form
+        const formData = new FormData(this);
+        const paidAmount = parseFloat(formData.get('paid_amount')) || 0;
+        const paymentMethod = formData.get('payment_method');
+        
+        if (paidAmount < 100) {
+            showError('Amount paid must be at least UGX 100');
+            return;
+        }
+        
+        if (paidAmount > currentDueAmount) {
+            showError(`Amount paid cannot exceed due amount of UGX ${currentDueAmount.toLocaleString()}`);
+            return;
+        }
+        
+        if (!paymentMethod) {
+            showError('Please select a payment method');
+            return;
+        }
+        
+        // Show loading
+        loadingIndicator.classList.remove('hidden');
+        errorMessage.classList.add('hidden');
+        submitButton.disabled = true;
+        
+        try {
+            // IMPORTANT: Update this URL to match your Flask route
+            // Common Flask route patterns:
+            // 1. /admin/loans/repayments/record/<repayment_id>
+            // 2. /admin/loans/record-repayment/<repayment_id>
+            // 3. /admin/record-repayment/<repayment_id>
+            
+            const response = await fetch(`/admin/loans/repayments/record/${currentRepaymentId}`, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    // If using JSON instead of FormData, uncomment:
+                    // 'Content-Type': 'application/json'
+                },
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                showSuccessMessage('Repayment recorded successfully!');
+                closeModal();
+                
+                // Reload page after delay
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                showError(data.message || 'Failed to record repayment');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showError('Network error. Please check console for details.');
+            
+            // Debug: Log the attempted URL
+            console.log('Attempted URL:', `/admin/loans/repayments/record/${currentRepaymentId}`);
+            console.log('Current repayment ID:', currentRepaymentId);
+        } finally {
+            loadingIndicator.classList.add('hidden');
+            submitButton.disabled = false;
+        }
+    });
+    
+    // Helper function to show error
+    function showError(message) {
+        errorText.textContent = message;
+        errorMessage.classList.remove('hidden');
+        errorMessage.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+    
+    // Success message function
+    function showSuccessMessage(message) {
+        const toast = document.createElement('div');
+        toast.className = 'fixed top-4 right-4 z-50 px-6 py-3 bg-green-50 text-green-700 rounded-xl shadow-lg border-l-4 border-green-500 animate-slide-in';
+        toast.innerHTML = `
+            <div class="flex items-center">
+                <i class="fas fa-check-circle mr-3 text-lg"></i>
+                <span>${message}</span>
+            </div>
+        `;
+        
+        document.body.appendChild(toast);
+        setTimeout(() => {
+            toast.classList.add('animate-slide-out');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+    
+    // Filter repayments
+    document.getElementById('searchInput').addEventListener('keyup', function(e) {
+        if (e.key === 'Enter') {
+            applyFilters();
+        }
+    });
+    
+    document.getElementById('statusFilter').addEventListener('change', function() {
+        applyFilters();
+    });
+    
+    function applyFilters() {
+        const search = document.getElementById('searchInput').value;
+        const status = document.getElementById('statusFilter').value;
+        let url = '{{ url_for("loans.loan_repayments") }}';
+        const params = new URLSearchParams();
+        
+        if (search) params.append('search', search);
+        if (status) params.append('status', status);
+        
+        if (params.toString()) {
+            url += '?' + params.toString();
+        }
+        
+        window.location.href = url;
+    }
+</script>
+
+<style>
+    table {
+        min-width: 800px;
+    }
+    
+    @media (min-width: 768px) {
+        table {
+            min-width: 0;
+        }
+    }
+    
+    /* Animation for success message */
+    @keyframes slide-in {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    @keyframes slide-out {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+    }
+    
+    .animate-slide-in {
+        animation: slide-in 0.3s ease-out;
+    }
+    
+    .animate-slide-out {
+        animation: slide-out 0.3s ease-in forwards;
+    }
+</style>
+{% endblock %}

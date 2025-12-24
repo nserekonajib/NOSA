@@ -1,0 +1,279 @@
+{% extends "adminbase.html" %}
+
+{% block title %}Expense Categories - LUNSERK SACCO Admin{% endblock %}
+
+{% block breadcrumb %}Expenses & Incomes / Categories / Expenses{% endblock %}
+
+{% block page_title %}Expense Categories{% endblock %}
+
+{% block page_subtitle %}Manage expense categories{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header with Add Button -->
+    <div class="flex justify-between items-center">
+        <div>
+            <h2 class="text-lg font-bold text-gray-800">Expense Categories</h2>
+            <p class="text-sm text-gray-600">{{ categories|length }} category(s)</p>
+        </div>
+        <button onclick="openAddCategoryModal()" 
+                class="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all hover-lift">
+            <i class="fas fa-plus mr-2"></i> Add Category
+        </button>
+    </div>
+
+    <!-- Categories Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for category in categories %}
+        <div class="card-glass rounded-2xl p-6 hover-lift transition-all">
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <h3 class="font-bold text-gray-800 text-lg">{{ category.name }}</h3>
+                    <span class="inline-block px-3 py-1 text-xs rounded-full 
+                        {% if category.status == 'active' %}bg-green-100 text-green-800
+                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                        {{ category.status|title }}
+                    </span>
+                </div>
+                <div class="dropdown relative">
+                    <button class="p-2 hover:bg-gray-100 rounded-lg">
+                        <i class="fas fa-ellipsis-v text-gray-500"></i>
+                    </button>
+                    <div class="dropdown-content absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 z-10 hidden">
+                        <button onclick="openEditCategoryModal('{{ category.id }}', '{{ category.name }}', '{{ category.description }}', '{{ category.status }}')" 
+                                class="block w-full text-left px-4 py-3 text-sm text-blue-600 hover:bg-blue-50">
+                            <i class="fas fa-edit mr-2"></i> Edit
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            {% if category.description %}
+            <p class="text-gray-600 text-sm mb-4">{{ category.description }}</p>
+            {% endif %}
+            
+            <div class="text-xs text-gray-500">
+                Created: {{ category.created_at[:10] }}
+            </div>
+        </div>
+        {% else %}
+        <div class="col-span-3">
+            <div class="card-glass rounded-2xl p-12 text-center">
+                <div class="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                    <i class="fas fa-tags text-gray-400 text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-bold text-gray-700 mb-2">No Expense Categories</h3>
+                <p class="text-gray-600 mb-6">Start by creating your first expense category</p>
+                <button onclick="openAddCategoryModal()" 
+                        class="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all inline-block">
+                    <i class="fas fa-plus mr-2"></i> Create Category
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Add Category Modal -->
+<div id="addCategoryModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-2xl p-6 max-w-md w-full mx-4">
+        <h3 class="text-lg font-bold text-gray-800 mb-4">Add Expense Category</h3>
+        <form id="addCategoryForm">
+            <div class="space-y-4">
+                <div>
+                    <label for="categoryName" class="block text-sm font-medium text-gray-700 mb-2">
+                        Category Name *
+                    </label>
+                    <input type="text" id="categoryName" name="name" required
+                           class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           placeholder="e.g., Office Supplies">
+                </div>
+                <div>
+                    <label for="categoryDescription" class="block text-sm font-medium text-gray-700 mb-2">
+                        Description
+                    </label>
+                    <textarea id="categoryDescription" name="description" rows="3"
+                              class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              placeholder="Describe this category..."></textarea>
+                </div>
+            </div>
+            <div class="flex justify-end space-x-3 mt-6">
+                <button type="button" onclick="closeModal('addCategoryModal')" 
+                        class="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50">
+                    Cancel
+                </button>
+                <button type="submit" 
+                        class="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700">
+                    Add Category
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Category Modal -->
+<div id="editCategoryModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-2xl p-6 max-w-md w-full mx-4">
+        <h3 class="text-lg font-bold text-gray-800 mb-4">Edit Expense Category</h3>
+        <form id="editCategoryForm">
+            <input type="hidden" id="editCategoryId" name="category_id">
+            <div class="space-y-4">
+                <div>
+                    <label for="editCategoryName" class="block text-sm font-medium text-gray-700 mb-2">
+                        Category Name *
+                    </label>
+                    <input type="text" id="editCategoryName" name="name" required
+                           class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+                <div>
+                    <label for="editCategoryDescription" class="block text-sm font-medium text-gray-700 mb-2">
+                        Description
+                    </label>
+                    <textarea id="editCategoryDescription" name="description" rows="3"
+                              class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
+                </div>
+                <div>
+                    <label for="editCategoryStatus" class="block text-sm font-medium text-gray-700 mb-2">
+                        Status
+                    </label>
+                    <select id="editCategoryStatus" name="status"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex justify-end space-x-3 mt-6">
+                <button type="button" onclick="closeModal('editCategoryModal')" 
+                        class="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50">
+                    Cancel
+                </button>
+                <button type="submit" 
+                        class="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700">
+                    Update Category
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Modal functions
+    function openAddCategoryModal() {
+        document.getElementById('addCategoryModal').classList.remove('hidden');
+    }
+    
+    function openEditCategoryModal(categoryId, name, description, status) {
+        document.getElementById('editCategoryId').value = categoryId;
+        document.getElementById('editCategoryName').value = name;
+        document.getElementById('editCategoryDescription').value = description || '';
+        document.getElementById('editCategoryStatus').value = status;
+        document.getElementById('editCategoryModal').classList.remove('hidden');
+    }
+    
+    function closeModal(modalId) {
+        document.getElementById(modalId).classList.add('hidden');
+    }
+    
+    // Form submissions
+    document.getElementById('addCategoryForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        
+        fetch('{{ url_for("expense_incomes.add_expense_category") }}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                closeModal('addCategoryModal');
+                showSuccessMessage('Category added successfully');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Error adding category');
+        });
+    });
+    
+    document.getElementById('editCategoryForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const categoryId = document.getElementById('editCategoryId').value;
+        const formData = new FormData(this);
+        
+        fetch(`/admin/expense_incomes/expense-categories/edit/${categoryId}`, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                closeModal('editCategoryModal');
+                showSuccessMessage('Category updated successfully');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Error updating category');
+        });
+    });
+    
+    // Success message
+    function showSuccessMessage(message) {
+        const toast = document.createElement('div');
+        toast.className = 'fixed top-4 right-4 z-50 px-6 py-3 bg-green-50 text-green-700 rounded-xl shadow-lg border-l-4 border-green-500';
+        toast.innerHTML = `
+            <div class="flex items-center">
+                <i class="fas fa-check-circle mr-3 text-lg"></i>
+                <span>${message}</span>
+            </div>
+        `;
+        
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+    
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.dropdown')) {
+            document.querySelectorAll('.dropdown-content').forEach(dropdown => {
+                dropdown.classList.add('hidden');
+            });
+        }
+    });
+    
+    // Toggle dropdown
+    document.querySelectorAll('.dropdown button').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const dropdown = this.parentElement.querySelector('.dropdown-content');
+            dropdown.classList.toggle('hidden');
+        });
+    });
+</script>
+
+<style>
+    .hover-lift {
+        transition: transform 0.2s ease-in-out;
+    }
+    
+    .hover-lift:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+    
+    .dropdown-content {
+        animation: fadeIn 0.2s ease-in-out;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
+{% endblock %}

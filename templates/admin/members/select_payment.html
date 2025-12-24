@@ -1,0 +1,273 @@
+{% extends "adminbase.html" %}
+
+{% block title %}Select Payment Method - LUNSERK SACCO Admin{% endblock %}
+
+{% block breadcrumb %}Members / Add Member / Payment{% endblock %}
+
+{% block page_title %}Complete Member Registration{% endblock %}
+
+{% block page_subtitle %}Select payment method for {{ member_name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <!-- Payment Selection Card -->
+    <div class="card-glass rounded-2xl p-6">
+        <!-- Summary -->
+        <div class="mb-6 p-4 bg-blue-50 rounded-xl">
+            <div class="flex justify-between items-center">
+                <div>
+                    <p class="text-sm text-gray-600">Membership Fee</p>
+                    <p class="text-2xl font-bold text-gray-800">UGX {{ "{:,.0f}".format(membership_fee) }}</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-sm text-gray-600">Member</p>
+                    <p class="font-medium text-gray-800">{{ member_name }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment Methods -->
+        <h3 class="text-lg font-bold text-gray-800 mb-4">Select Payment Method</h3>
+        
+        <form id="paymentMethodForm" class="space-y-4">
+            <!-- Hidden registration_id field -->
+            <input type="hidden" id="registration_id" value="{{ registration_id }}">
+            
+            <!-- Cash Payment Option -->
+            <div class="payment-option">
+                <input type="radio" id="cash_payment" name="payment_method" value="cash" class="hidden" checked>
+                <label for="cash_payment" class="flex items-center p-4 border-2 border-blue-300 rounded-xl cursor-pointer hover:bg-blue-50 transition-colors">
+                    <div class="p-3 bg-green-100 rounded-lg mr-4">
+                        <i class="fas fa-money-bill-wave text-green-600 text-xl"></i>
+                    </div>
+                    <div class="flex-1">
+                        <h4 class="font-bold text-gray-800">Cash Payment</h4>
+                        <p class="text-sm text-gray-600">Process payment immediately. Member will be activated instantly.</p>
+                    </div>
+                    <i class="fas fa-check-circle text-blue-600 text-xl"></i>
+                </label>
+            </div>
+            
+            <!-- PesaPal Payment Option -->
+            <div class="payment-option">
+                <input type="radio" id="pesapal_payment" name="payment_method" value="pesapal" class="hidden">
+                <label for="pesapal_payment" class="flex items-center p-4 border-2 border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors">
+                    <div class="p-3 bg-purple-100 rounded-lg mr-4">
+                        <i class="fas fa-credit-card text-purple-600 text-xl"></i>
+                    </div>
+                    <div class="flex-1">
+                        <h4 class="font-bold text-gray-800">PesaPal Online Payment</h4>
+                        <p class="text-sm text-gray-600">Member will pay online. Activation after payment confirmation.</p>
+                        <div class="mt-2 flex items-center text-xs">
+                            <img src="https://pesapal.com/wp-content/uploads/2021/08/cropped-PesaPal-Logo-Colour.png" alt="PesaPal" class="h-4 mr-2">
+                            <span class="text-gray-500">Secure online payment</span>
+                        </div>
+                    </div>
+                    <i class="fas fa-circle text-gray-300 text-xl"></i>
+                </label>
+            </div>
+        </form>
+
+        <!-- Payment Actions -->
+        <div class="mt-8 pt-6 border-t border-gray-200">
+            <div class="flex justify-between">
+                <a href="{{ url_for('members.add_member') }}" 
+                   class="px-6 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors">
+                    <i class="fas fa-arrow-left mr-2"></i> Back
+                </a>
+                
+                <button type="button" onclick="processPayment()" 
+                        class="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all hover-lift">
+                    <i class="fas fa-lock mr-2"></i> Process Payment
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Terms -->
+    <div class="mt-6 p-4 bg-gray-50 rounded-xl">
+        <h4 class="font-bold text-gray-800 mb-2">Payment Terms</h4>
+        <ul class="text-sm text-gray-600 space-y-1">
+            <li>• Membership fee is non-refundable</li>
+            <li>• Account activation occurs after successful payment</li>
+            <li>• Default password will be sent to member's email</li>
+            <li>• Member will receive account details via SMS/Email</li>
+        </ul>
+    </div>
+</div>
+
+<script>
+    // Payment option selection
+    document.querySelectorAll('.payment-option input').forEach(radio => {
+        radio.addEventListener('change', function() {
+            // Update all labels
+            document.querySelectorAll('.payment-option label').forEach(label => {
+                label.classList.remove('border-blue-300', 'bg-blue-50');
+                label.classList.add('border-gray-200');
+                label.querySelector('.fa-check-circle, .fa-circle').classList.remove('text-blue-600');
+                label.querySelector('.fa-check-circle, .fa-circle').classList.add('text-gray-300');
+            });
+            
+            // Update selected label
+            const selectedLabel = document.querySelector(`label[for="${this.id}"]`);
+            selectedLabel.classList.add('border-blue-300', 'bg-blue-50');
+            selectedLabel.classList.remove('border-gray-200');
+            selectedLabel.querySelector('.fa-check-circle, .fa-circle').classList.add('text-blue-600');
+            selectedLabel.querySelector('.fa-check-circle, .fa-circle').classList.remove('text-gray-300');
+        });
+    });
+
+    // Process payment
+    function processPayment() {
+        const paymentMethod = document.querySelector('input[name="payment_method"]:checked').value;
+        const registrationId = document.getElementById('registration_id').value;
+        const button = document.querySelector('button[onclick="processPayment()"]');
+        const originalText = button.innerHTML;
+        
+        if (!registrationId) {
+            alert('Error: Registration ID missing. Please go back and try again.');
+            return;
+        }
+        
+        // Show loading
+        button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Processing...';
+        button.disabled = true;
+        
+        if (paymentMethod === 'cash') {
+            // Process cash payment
+            fetch("{{ url_for('members.process_cash_payment') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    registration_id: registrationId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success message
+                    showSuccessMessage('Member registered successfully!');
+                    
+                    // Redirect to member details
+                    setTimeout(() => {
+                        window.location.href = data.redirect_url;
+                    }, 2000);
+                } else {
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                    showErrorMessage('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                button.innerHTML = originalText;
+                button.disabled = false;
+                showErrorMessage('Network error. Please try again.');
+            });
+            
+        } else if (paymentMethod === 'pesapal') {
+            // Process PesaPal payment
+            fetch("{{ url_for('members.process_pesapal_payment') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    registration_id: registrationId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Redirect to PesaPal
+                    window.location.href = data.redirect_url;
+                } else {
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                    showErrorMessage('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                button.innerHTML = originalText;
+                button.disabled = false;
+                showErrorMessage('Network error. Please try again.');
+            });
+        }
+    }
+
+    // Success message
+    function showSuccessMessage(message) {
+        const toast = document.createElement('div');
+        toast.className = 'fixed top-4 right-4 z-50 px-6 py-3 bg-green-50 text-green-700 rounded-xl shadow-lg border-l-4 border-green-500 transform transition-all duration-300 translate-x-full';
+        toast.innerHTML = `
+            <div class="flex items-center">
+                <i class="fas fa-check-circle mr-3 text-lg"></i>
+                <span>${message}</span>
+            </div>
+        `;
+        
+        document.body.appendChild(toast);
+        
+        // Animate in
+        setTimeout(() => {
+            toast.classList.remove('translate-x-full');
+            toast.classList.add('translate-x-0');
+        }, 10);
+        
+        // Remove after 3 seconds
+        setTimeout(() => {
+            toast.classList.remove('translate-x-0');
+            toast.classList.add('translate-x-full');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+
+    // Error message
+    function showErrorMessage(message) {
+        const toast = document.createElement('div');
+        toast.className = 'fixed top-4 right-4 z-50 px-6 py-3 bg-red-50 text-red-700 rounded-xl shadow-lg border-l-4 border-red-500 transform transition-all duration-300 translate-x-full';
+        toast.innerHTML = `
+            <div class="flex items-center">
+                <i class="fas fa-exclamation-circle mr-3 text-lg"></i>
+                <span>${message}</span>
+            </div>
+        `;
+        
+        document.body.appendChild(toast);
+        
+        // Animate in
+        setTimeout(() => {
+            toast.classList.remove('translate-x-full');
+            toast.classList.add('translate-x-0');
+        }, 10);
+        
+        // Remove after 5 seconds
+        setTimeout(() => {
+            toast.classList.remove('translate-x-0');
+            toast.classList.add('translate-x-full');
+            setTimeout(() => toast.remove(), 300);
+        }, 5000);
+    }
+</script>
+
+<style>
+    .payment-option input:checked + label {
+        border-color: #3b82f6;
+        background-color: #eff6ff;
+    }
+    
+    .hover-lift {
+        transition: transform 0.2s ease-in-out;
+    }
+    
+    .hover-lift:hover {
+        transform: translateY(-2px);
+    }
+    
+    /* Animation for radio button selection */
+    .payment-option label {
+        transition: all 0.2s ease-in-out;
+    }
+</style>
+{% endblock %}

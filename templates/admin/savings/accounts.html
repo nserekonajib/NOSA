@@ -1,0 +1,292 @@
+{% extends "adminbase.html" %}
+
+{% block title %}Savings Accounts - LUNSERK SACCO Admin{% endblock %}
+
+{% block breadcrumb %}Savings / Accounts{% endblock %}
+
+{% block page_title %}Savings Accounts Management{% endblock %}
+
+{% block page_subtitle %}View and manage all savings accounts{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Summary Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="card-glass rounded-2xl p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600">Total Balance</p>
+                    <p class="text-2xl font-bold text-gray-800">UGX {{ "{:,.0f}".format(total_balance) }}</p>
+                </div>
+                <div class="p-3 bg-blue-100 rounded-lg">
+                    <i class="fas fa-piggy-bank text-blue-600 text-xl"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card-glass rounded-2xl p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600">Available Balance</p>
+                    <p class="text-2xl font-bold text-gray-800">UGX {{ "{:,.0f}".format(total_balance) }}</p>
+                </div>
+                <div class="p-3 bg-green-100 rounded-lg">
+                    <i class="fas fa-hand-holding-usd text-green-600 text-xl"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card-glass rounded-2xl p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600">Total Accounts</p>
+                    <p class="text-2xl font-bold text-gray-800">{{ total_accounts }}</p>
+                </div>
+                <div class="p-3 bg-purple-100 rounded-lg">
+                    <i class="fas fa-users text-purple-600 text-xl"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card-glass rounded-2xl p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600">Active Accounts</p>
+                    <p class="text-2xl font-bold text-gray-800">{{ active_accounts }}</p>
+                </div>
+                <div class="p-3 bg-green-100 rounded-lg">
+                    <i class="fas fa-check-circle text-green-600 text-xl"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and Filter Card -->
+    <div class="card-glass rounded-2xl p-6">
+        <form method="GET" action="{{ url_for('savings.accounts') }}" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- Search Input -->
+                <div>
+                    <label for="search" class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-search text-blue-500 mr-1"></i> Search
+                    </label>
+                    <div class="relative">
+                        <input type="text" id="search" name="search" value="{{ search }}"
+                               class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                               placeholder="Search by account, name, or member number">
+                        <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                    </div>
+                </div>
+                
+                <!-- Status Filter -->
+                <div>
+                    <label for="status" class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-filter text-blue-500 mr-1"></i> Filter by Status
+                    </label>
+                    <select id="status" name="status"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                        <option value="">All Status</option>
+                        <option value="active" {% if status == 'active' %}selected{% endif %}>Active</option>
+                        <option value="inactive" {% if status == 'inactive' %}selected{% endif %}>Inactive</option>
+                        <option value="closed" {% if status == 'closed' %}selected{% endif %}>Closed</option>
+                    </select>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="flex items-end space-x-4">
+                    <button type="submit"
+                            class="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all">
+                        <i class="fas fa-search mr-2"></i> Search
+                    </button>
+                    <a href="{{ url_for('savings.accounts') }}"
+                       class="px-6 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors">
+                        <i class="fas fa-redo mr-2"></i> Reset
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Accounts List Table -->
+    <div class="card-glass rounded-2xl p-6">
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <h3 class="text-lg font-bold text-gray-800">All Savings Accounts</h3>
+                <p class="text-sm text-gray-600">{{ accounts|length }} account(s) found</p>
+            </div>
+            <a href="{{ url_for('savings.dashboard') }}"
+               class="px-6 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 transition-all">
+                <i class="fas fa-chart-line mr-2"></i> View Dashboard
+            </a>
+        </div>
+        
+        {% if accounts %}
+        <div class="overflow-x-auto rounded-xl border border-gray-200">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Account Details
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Member Information
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Balance Information
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Account Status
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Actions
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for account in accounts %}
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center">
+                                <div class="p-2 bg-blue-100 rounded-lg mr-3">
+                                    <i class="fas fa-wallet text-blue-600"></i>
+                                </div>
+                                <div>
+                                    <div class="text-sm font-medium text-gray-900">{{ account.account_number }}</div>
+                                    <div class="text-sm text-gray-500">{{ account.account_name }}</div>
+                                    <div class="text-xs text-gray-400 mt-1">
+                                        Opened: {{ account.opened_at[:10] if account.opened_at else 'N/A' }}
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            {% if account.members %}
+                            <div class="text-sm text-gray-900">{{ account.members.full_name }}</div>
+                            <div class="text-sm text-gray-500">ID: {{ account.members.member_number }}</div>
+                            <div class="text-sm text-gray-500">{{ account.members.phone_number }}</div>
+                            {% else %}
+                            <div class="text-sm text-gray-500 italic">Member info not available</div>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-lg font-bold text-gray-800">UGX {{ "{:,.0f}".format(account.current_balance) }}</div>
+                            <div class="text-sm text-gray-600">Available: UGX {{ "{:,.0f}".format(account.available_balance) }}</div>
+                            <div class="text-xs text-gray-500 mt-1">
+                                Min. Balance: UGX {{ "{:,.0f}".format(account.minimum_balance) }}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            {% if account.status == 'active' %}
+                            <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                <i class="fas fa-check-circle mr-1"></i> Active
+                            </span>
+                            {% elif account.status == 'inactive' %}
+                            <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                <i class="fas fa-pause-circle mr-1"></i> Inactive
+                            </span>
+                            {% elif account.status == 'closed' %}
+                            <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                                <i class="fas fa-times-circle mr-1"></i> Closed
+                            </span>
+                            {% endif %}
+                            
+                            <div class="mt-2 text-xs text-gray-600">
+                                Type: <span class="font-medium">{{ account.account_type|title }}</span>
+                            </div>
+                            <div class="text-xs text-gray-600">
+                                Interest: {{ account.interest_rate }}% p.a.
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-sm font-medium">
+                            <div class="flex flex-col space-y-2">
+                                <a href="{{ url_for('savings.account_details', account_id=account.id) }}"
+                                   class="text-blue-600 hover:text-blue-900 transition-colors inline-flex items-center">
+                                    <i class="fas fa-eye mr-1"></i> View Details
+                                </a>
+                                <a href="{{ url_for('savings.new_deposit') }}?account={{ account.id }}"
+                                   class="text-green-600 hover:text-green-900 transition-colors inline-flex items-center">
+                                    <i class="fas fa-plus-circle mr-1"></i> Deposit
+                                </a>
+                                <a href="{{ url_for('savings.new_withdrawal') }}?account={{ account.id }}"
+                                   class="text-yellow-600 hover:text-yellow-900 transition-colors inline-flex items-center">
+                                    <i class="fas fa-minus-circle mr-1"></i> Withdraw
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination (if needed) -->
+        {% if total_accounts > 10 %}
+        <div class="mt-6 flex items-center justify-between">
+            <div class="text-sm text-gray-700">
+                Showing <span class="font-medium">1</span> to <span class="font-medium">{{ accounts|length }}</span> of <span class="font-medium">{{ total_accounts }}</span> accounts
+            </div>
+            <div class="flex space-x-2">
+                <button class="px-3 py-1 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
+                    <i class="fas fa-chevron-left"></i> Previous
+                </button>
+                <button class="px-3 py-1 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
+                    Next <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% else %}
+        <!-- Empty State -->
+        <div class="text-center py-12">
+            <div class="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                <i class="fas fa-piggy-bank text-gray-400 text-3xl"></i>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">No savings accounts found</h3>
+            <p class="text-gray-600 max-w-md mx-auto mb-6">
+                {% if search or status %}
+                No accounts match your search criteria. Try a different search or clear the filters.
+                {% else %}
+                No savings accounts have been created yet.
+                {% endif %}
+            </p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    // Auto-submit filter on change
+    document.getElementById('status').addEventListener('change', function() {
+        if (this.value) {
+            this.form.submit();
+        }
+    });
+</script>
+
+<style>
+    table {
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+    
+    table th {
+        position: sticky;
+        top: 0;
+        background-color: #f9fafb;
+        z-index: 10;
+    }
+    
+    table td, table th {
+        border-bottom: 1px solid #e5e7eb;
+    }
+    
+    table tr:last-child td {
+        border-bottom: none;
+    }
+    
+    table tr:hover {
+        background-color: #f9fafb;
+    }
+</style>
+{% endblock %}

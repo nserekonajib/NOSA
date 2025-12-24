@@ -1,0 +1,509 @@
+{% extends "adminbase.html" %}
+
+{% block title %}{{ member.full_name }} - Share Details - Admin Panel{% endblock %}
+
+{% block page_title %}{{ member.full_name }}'s Share Details{% endblock %}
+{% block page_subtitle %}Member Number: {{ member.member_number }}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Back Button and Actions -->
+    <div class="mb-6">
+        <div class="flex justify-between items-center">
+            <a href="{{ url_for('shares_admin.members_shares') }}" 
+               class="inline-flex items-center text-blue-600 hover:text-blue-800">
+                <i class="fas fa-arrow-left mr-2"></i> Back to Members
+            </a>
+            
+            <div class="flex space-x-3">
+                <button onclick="openManualPurchaseModal()"
+                        class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center">
+                    <i class="fas fa-shopping-cart mr-2"></i>
+                    Purchase Shares
+                </button>
+                <a href="mailto:{{ member.email }}" 
+                   class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center">
+                    <i class="fas fa-envelope mr-2"></i>
+                    Contact Member
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Member Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white p-6 rounded-xl shadow">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm">Total Shares Owned</p>
+                    <p class="text-3xl font-bold text-gray-800 mt-1">{{ member.shares_owned|int }}</p>
+                </div>
+                <div class="bg-blue-100 p-3 rounded-full">
+                    <i class="fas fa-chart-pie text-blue-600 text-lg"></i>
+                </div>
+            </div>
+            <p class="text-xs text-gray-500 mt-2">Current share holdings</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm">Current Share Value</p>
+                    <p class="text-2xl font-bold text-green-600 mt-1">
+                        UGX {{ "{:,.0f}".format(total_value) }}
+                    </p>
+                </div>
+                <div class="bg-green-100 p-3 rounded-full">
+                    <i class="fas fa-money-bill-wave text-green-600 text-lg"></i>
+                </div>
+            </div>
+            <p class="text-xs text-gray-500 mt-2">Based on current price</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm">Total Transactions</p>
+                    <p class="text-3xl font-bold text-purple-600 mt-1">{{ purchase_summary.total_transactions }}</p>
+                </div>
+                <div class="bg-purple-100 p-3 rounded-full">
+                    <i class="fas fa-exchange-alt text-purple-600 text-lg"></i>
+                </div>
+            </div>
+            <p class="text-xs text-gray-500 mt-2">All time transactions</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm">Total Investment</p>
+                    <p class="text-2xl font-bold text-orange-600 mt-1">
+                        UGX {{ "{:,.0f}".format(purchase_summary.total_investment) }}
+                    </p>
+                </div>
+                <div class="bg-orange-100 p-3 rounded-full">
+                    <i class="fas fa-hand-holding-usd text-orange-600 text-lg"></i>
+                </div>
+            </div>
+            <p class="text-xs text-gray-500 mt-2">Total amount invested</p>
+        </div>
+    </div>
+
+    <!-- Two Column Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <!-- Member Information -->
+        <div class="bg-white rounded-xl shadow-lg p-6 lg:col-span-1">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">Member Information</h3>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Full Name</label>
+                    <p class="mt-1 text-sm text-gray-900">{{ member.full_name }}</p>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Member Number</label>
+                    <p class="mt-1 text-sm text-gray-900 font-mono">{{ member.member_number }}</p>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Email Address</label>
+                    <p class="mt-1 text-sm text-gray-900">{{ member.email }}</p>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Phone Number</label>
+                    <p class="mt-1 text-sm text-gray-900">{{ member.phone_number or 'Not provided' }}</p>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Account Status</label>
+                    <p class="mt-1">
+                        <span class="px-2 py-1 rounded-full text-xs font-medium 
+                            {% if member.account_status == 'active' %}bg-green-100 text-green-800
+                            {% elif member.account_status == 'suspended' %}bg-red-100 text-red-800
+                            {% elif member.account_status == 'pending' %}bg-yellow-100 text-yellow-800
+                            {% else %}bg-gray-100 text-gray-800{% endif %}">
+                            {{ member.account_status|title }}
+                        </span>
+                    </p>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Member Since</label>
+                    <p class="mt-1 text-sm text-gray-900">{{ member.created_at[:10] }}</p>
+                </div>
+                
+                <div class="pt-4 border-t border-gray-200">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Current Share Price</label>
+                    <div class="bg-gray-50 p-3 rounded-lg">
+                        <p class="text-lg font-bold text-green-600">
+                            UGX {{ "{:,.0f}".format(current_share_value.value_per_share|float) }} per share
+                        </p>
+                        <p class="text-xs text-gray-500 mt-1">
+                            Effective {{ current_share_value.effective_date }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transaction History -->
+        <div class="bg-white rounded-xl shadow-lg p-6 lg:col-span-2">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-lg font-bold text-gray-800">Transaction History</h3>
+                <span class="text-sm text-gray-500">{{ transactions|length }} transactions</span>
+            </div>
+            
+            {% if transactions|length > 0 %}
+            <div class="space-y-4">
+                {% for transaction in transactions %}
+                <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <div class="flex items-center space-x-3">
+                                <span class="px-2 py-1 rounded-full text-xs font-medium 
+                                    {% if transaction.transaction_type == 'purchase' %}bg-green-100 text-green-800
+                                    {% else %}bg-red-100 text-red-800{% endif %}">
+                                    {{ transaction.transaction_type|title }}
+                                </span>
+                                <span class="text-sm text-gray-500">{{ transaction.transaction_date[:10] }}</span>
+                                <span class="text-xs text-gray-400">{{ transaction.transaction_date[11:16] }}</span>
+                            </div>
+                            
+                            <p class="font-medium text-gray-900 mt-2">
+                                {{ transaction.shares|int }} shares 
+                                <span class="text-gray-600">at UGX {{ "{:,.0f}".format(transaction.price_per_share|float) }}/share</span>
+                            </p>
+                            
+                            {% if transaction.payment_method %}
+                            <p class="text-sm text-gray-600 mt-1">
+                                Payment: <span class="capitalize">{{ transaction.payment_method }}</span>
+                                {% if transaction.reference %}
+                                <span class="ml-2">Ref: <code class="text-xs">{{ transaction.reference }}</code></span>
+                                {% endif %}
+                            </p>
+                            {% endif %}
+                            
+                            {% if transaction.notes %}
+                            <p class="text-sm text-gray-500 mt-2">{{ transaction.notes }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="text-right">
+                            <p class="text-xl font-bold text-gray-800">
+                                UGX {{ "{:,.0f}".format(transaction.total_amount|float) }}
+                            </p>
+                            <button onclick="viewTransactionDetails('{{ transaction.id }}')"
+                                    class="mt-2 text-blue-600 hover:text-blue-800 text-sm">
+                                <i class="fas fa-info-circle mr-1"></i> Details
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-12">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
+                    <i class="fas fa-exchange-alt text-gray-400 text-2xl"></i>
+                </div>
+                <p class="text-gray-500">No share transactions found</p>
+                <p class="text-sm text-gray-400 mt-2">This member hasn't purchased any shares yet.</p>
+                <button onclick="openManualPurchaseModal()"
+                        class="mt-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                    <i class="fas fa-shopping-cart mr-2"></i>Make First Purchase
+                </button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Purchase Summary -->
+    <div class="bg-white rounded-xl shadow-lg p-6">
+        <h3 class="text-lg font-bold text-gray-800 mb-6">Purchase Summary</h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="text-center p-4 bg-blue-50 rounded-lg">
+                <p class="text-2xl font-bold text-blue-600">{{ purchase_summary.total_shares|int }}</p>
+                <p class="text-sm text-gray-600">Total Shares</p>
+            </div>
+            
+            <div class="text-center p-4 bg-green-50 rounded-lg">
+                <p class="text-2xl font-bold text-green-600">{{ purchase_summary.total_transactions }}</p>
+                <p class="text-sm text-gray-600">Total Transactions</p>
+            </div>
+            
+            <div class="text-center p-4 bg-purple-50 rounded-lg">
+                <p class="text-2xl font-bold text-purple-600">
+                    UGX {{ "{:,.0f}".format(purchase_summary.total_investment) }}
+                </p>
+                <p class="text-sm text-gray-600">Total Invested</p>
+            </div>
+            
+            <div class="text-center p-4 bg-orange-50 rounded-lg">
+                <p class="text-sm text-gray-600">First Purchase</p>
+                <p class="text-lg font-bold text-orange-600 mt-1">{{ purchase_summary.first_purchase }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Manual Purchase Modal -->
+<div id="manualPurchaseModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-xl bg-white">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold text-gray-800">Purchase Shares for {{ member.full_name }}</h3>
+            <button onclick="closeManualPurchaseModal()" 
+                    class="text-gray-400 hover:text-gray-600 text-2xl">
+                &times;
+            </button>
+        </div>
+        
+        <form method="POST" action="{{ url_for('shares_admin.manual_share_purchase') }}">
+            <input type="hidden" name="member_id" value="{{ member.id }}">
+            
+            <div class="space-y-4">
+                <!-- Current Shares Info -->
+                <div class="bg-blue-50 p-4 rounded-lg">
+                    <div class="flex justify-between">
+                        <div>
+                            <p class="text-sm text-gray-600">Current Shares</p>
+                            <p class="text-xl font-bold text-gray-800">{{ member.shares_owned|int }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600">Current Value</p>
+                            <p class="text-xl font-bold text-green-600">
+                                UGX {{ "{:,.0f}".format(total_value) }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Number of Shares -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Number of Shares to Purchase *
+                    </label>
+                    <input type="number" 
+                           id="sharesInput"
+                           name="shares" 
+                           min="1"
+                           required
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                           placeholder="Enter number of shares">
+                </div>
+                
+                <!-- Price per Share (Read-only) -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Price per Share
+                    </label>
+                    <div class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50">
+                        UGX {{ "{:,.0f}".format(current_share_value.value_per_share|float) }}
+                    </div>
+                </div>
+                
+                <!-- Total Amount (Calculated) -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Total Amount
+                    </label>
+                    <div id="totalAmountDisplay" 
+                         class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 font-bold">
+                        UGX 0
+                    </div>
+                </div>
+                
+                <!-- New Total Shares -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        New Total Shares
+                    </label>
+                    <div id="newTotalShares" 
+                         class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-green-50 font-bold">
+                        {{ member.shares_owned|int }}
+                    </div>
+                </div>
+                
+                <!-- Payment Method -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Payment Method *
+                    </label>
+                    <select name="payment_method" 
+                            required
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="cash">Cash</option>
+                        <option value="bank_transfer">Bank Transfer</option>
+                        <option value="mobile_money">Mobile Money</option>
+                        <option value="check">Check</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                
+                <!-- Reference -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Reference Number (Optional)
+                    </label>
+                    <input type="text" 
+                           name="reference"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                           placeholder="e.g., Receipt number, transaction ID">
+                </div>
+                
+                <!-- Notes -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Notes (Optional)
+                    </label>
+                    <textarea name="notes" 
+                              rows="3"
+                              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              placeholder="Any additional notes..."></textarea>
+                </div>
+            </div>
+            
+            <div class="mt-6 pt-4 border-t border-gray-200 flex justify-end space-x-3">
+                <button type="button"
+                        onclick="closeManualPurchaseModal()"
+                        class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
+                    Cancel
+                </button>
+                <button type="submit" 
+                        class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                    Confirm Purchase
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Transaction Details Modal -->
+<div id="transactionModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-xl bg-white">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-bold text-gray-800">Transaction Details</h3>
+            <button onclick="closeTransactionModal()" 
+                    class="text-gray-400 hover:text-gray-600 text-2xl">
+                &times;
+            </button>
+        </div>
+        <div id="transactionDetails" class="space-y-4">
+            <!-- Details will be loaded here via JavaScript -->
+        </div>
+    </div>
+</div>
+
+<script>
+// Manual Purchase Modal Functions
+function openManualPurchaseModal() {
+    document.getElementById('manualPurchaseModal').classList.remove('hidden');
+}
+
+function closeManualPurchaseModal() {
+    document.getElementById('manualPurchaseModal').classList.add('hidden');
+}
+
+// Transaction Details Functions
+function viewTransactionDetails(transactionId) {
+    fetch(`/admin/shares/api/transaction/${transactionId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert('Error loading transaction details');
+                return;
+            }
+            
+            const detailsDiv = document.getElementById('transactionDetails');
+            detailsDiv.innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Transaction ID</label>
+                        <p class="mt-1 text-sm text-gray-900">${data.id}</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Date & Time</label>
+                        <p class="mt-1 text-sm text-gray-900">${new Date(data.transaction_date).toLocaleString()}</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Transaction Type</label>
+                        <span class="mt-1 inline-block px-2 py-1 rounded-full text-xs font-medium ${data.transaction_type === 'purchase' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                            ${data.transaction_type ? data.transaction_type.charAt(0).toUpperCase() + data.transaction_type.slice(1) : 'N/A'}
+                        </span>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Shares</label>
+                        <p class="mt-1 text-sm text-gray-900">${data.shares}</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Price per Share</label>
+                        <p class="mt-1 text-sm text-gray-900">UGX ${parseFloat(data.price_per_share).toLocaleString()}</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Total Amount</label>
+                        <p class="mt-1 text-sm text-gray-900 font-bold">UGX ${parseFloat(data.total_amount).toLocaleString()}</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Payment Method</label>
+                        <p class="mt-1 text-sm text-gray-900">${data.payment_method || 'N/A'}</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Reference</label>
+                        <p class="mt-1 text-sm text-gray-900"><code>${data.reference || 'N/A'}</code></p>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <label class="block text-sm font-medium text-gray-700">Notes</label>
+                    <p class="mt-1 text-sm text-gray-900">${data.notes || 'No notes provided'}</p>
+                </div>
+                <div class="mt-6 pt-4 border-t border-gray-200 flex justify-end">
+                    <button onclick="closeTransactionModal()"
+                            class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
+                        Close
+                    </button>
+                </div>
+            `;
+            
+            document.getElementById('transactionModal').classList.remove('hidden');
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error loading transaction details');
+        });
+}
+
+function closeTransactionModal() {
+    document.getElementById('transactionModal').classList.add('hidden');
+}
+
+// Calculate total amount and new total shares
+document.getElementById('sharesInput').addEventListener('input', function() {
+    const currentShares = {{ member.shares_owned|int }};
+    const newShares = parseInt(this.value) || 0;
+    const pricePerShare = {{ current_share_value.value_per_share|float }};
+    const totalAmount = newShares * pricePerShare;
+    const newTotalShares = currentShares + newShares;
+    
+    document.getElementById('totalAmountDisplay').textContent = 
+        `UGX ${totalAmount.toLocaleString()}`;
+    
+    document.getElementById('newTotalShares').textContent = 
+        newTotalShares.toLocaleString();
+});
+
+// Close modals when clicking outside
+window.onclick = function(event) {
+    const manualModal = document.getElementById('manualPurchaseModal');
+    const transactionModal = document.getElementById('transactionModal');
+    
+    if (event.target === manualModal) {
+        closeManualPurchaseModal();
+    }
+    if (event.target === transactionModal) {
+        closeTransactionModal();
+    }
+}
+</script>
+{% endblock %}

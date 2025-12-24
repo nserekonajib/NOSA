@@ -1,0 +1,315 @@
+{% extends "base.html" %}
+
+{% block title %}Member Dashboard - LUNSERK SACCO{% endblock %}
+
+{% block page_title %}Member Dashboard{% endblock %}
+
+{% block page_subtitle %}Welcome back to your financial overview{% endblock %}
+
+{% block breadcrumb %}
+    <li class="inline-flex items-center">
+        <span class="text-gray-500">Dashboard</span>
+    </li>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Welcome Banner -->
+    <div class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-2xl p-6 text-white mb-8">
+        <div class="flex flex-col md:flex-row justify-between items-center">
+            <div>
+                <h2 class="text-2xl font-bold mb-2">Welcome back, {{ member.full_name }}!</h2>
+                <p class="opacity-90">Manage your savings, loans, and account details all in one place.</p>
+            </div>
+            <div class="mt-4 md:mt-0 flex space-x-4">
+                <div class="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2 text-center">
+                    <p class="text-sm opacity-80">Member ID</p>
+                    <p class="font-semibold">{{ member.member_number }}</p>
+                </div>
+                <div class="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2 text-center">
+                    <p class="text-sm opacity-80">Account Status</p>
+                    <p class="font-semibold text-green-300">{{ member.account_status|upper }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Financial Summary -->
+    <div>
+        <p class="text-sm text-gray-500">Savings Account</p>
+        <p class="font-medium">
+            {% if savings_account and savings_account.account_number %}
+                {{ savings_account.account_number }}
+            {% else %}
+                Not assigned
+            {% endif %}
+        </p>
+    </div>
+    <div>
+        <p class="text-sm text-gray-500">Loan Account</p>
+        <p class="font-medium">
+            {% if loan_account and loan_account.account_number %}
+                {{ loan_account.account_number }}
+            {% else %}
+                Not assigned
+            {% endif %}
+        </p>
+    </div>
+
+        <!-- Loan Balance -->
+        <div class="stat-card bg-white p-6 rounded-xl shadow card-glass">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm font-medium">Loan Balance</p>
+                    <p class="text-2xl font-bold text-gray-800 mt-1">
+                        UGX {{ "{:,.0f}".format(loan_account.current_balance|float) }}
+                    </p>
+                    <p class="text-xs text-gray-500 mt-1">
+                        {% set active_loans = loan_applications|selectattr('status', 'equalto', 'approved')|list|length %}
+                        {{ active_loans }} Active Loan{% if active_loans != 1 %}s{% endif %}
+                    </p>
+                </div>
+                <div class="bg-red-100 p-3 rounded-full">
+                    <i class="fas fa-hand-holding-usd text-red-600 text-lg"></i>
+                </div>
+            </div>
+            <div class="mt-4 pt-4 border-t border-gray-100">
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-600">Available Limit</span>
+                    <span class="font-semibold">
+                        UGX {{ "{:,.0f}".format(loan_account.available_limit|float) }}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Shares -->
+            <div class="stat-card bg-white p-6 rounded-xl shadow card-glass">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm font-medium">Shares Owned</p>
+                        <p class="text-2xl font-bold text-gray-800 mt-1">{{ member.shares_owned }}</p>
+                        <p class="text-xs text-gray-500 mt-1">
+                            Value: UGX {{ "{:,.0f}".format(member.shares_owned|int * share_value|float) }}
+                        </p>
+                        <p class="text-xs text-gray-400 mt-1">
+                            Share Value: UGX {{ "{:,.0f}".format(share_value|float) }}
+                        </p>
+                    </div>
+                    <div class="bg-green-100 p-3 rounded-full">
+                        <i class="fas fa-chart-pie text-green-600 text-lg"></i>
+                    </div>
+                </div>
+            </div>
+
+        <!-- Pending Repayments -->
+        <div class="stat-card bg-white p-6 rounded-xl shadow card-glass">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm font-medium">Due Payments</p>
+                    <p class="text-2xl font-bold text-orange-600 mt-1">
+                        {% set total_due = pending_repayments|sum(attribute='due_amount')|float %}
+                        UGX {{ "{:,.0f}".format(total_due) }}
+                    </p>
+                    <p class="text-xs text-gray-500 mt-1">{{ pending_repayments|length }} Pending</p>
+                    {% if pending_repayments|length > 0 %}
+                        {% set next_payment = pending_repayments|first %}
+                        <p class="text-xs text-gray-500 mt-1">
+                            Next: UGX {{ "{:,.0f}".format(next_payment.due_amount|float) }} on {{ next_payment.due_date }}
+                        </p>
+                    {% endif %}
+                </div>
+                <div class="bg-orange-100 p-3 rounded-full">
+                    <i class="fas fa-calendar-exclamation text-orange-600 text-lg"></i>
+                </div>
+            </div>
+            {% if pending_repayments|length > 0 %}
+            <div class="mt-4 pt-4 border-t border-gray-100">
+                <a href="#" class="text-sm text-orange-600 hover:text-orange-800 font-medium flex items-center">
+                    View Due Payments
+                    <i class="fas fa-arrow-right ml-1 text-xs"></i>
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Recent Activity & Loan Status -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <!-- Recent Transactions -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold text-gray-800">Recent Transactions</h3>
+                <a href="{{ url_for('member.savings') }}" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                    View All
+                </a>
+            </div>
+            
+            <div class="space-y-4">
+                {% if transactions|length > 0 %}
+                    {% for transaction in transactions[:5] %}
+                    <div class="flex items-center p-4 {% if transaction.transaction_type == 'deposit' %}bg-green-50{% else %}bg-gray-50{% endif %} rounded-lg">
+                        <div class="{% if transaction.transaction_type == 'deposit' %}bg-green-100 text-green-600{% else %}bg-gray-100 text-gray-600{% endif %} p-3 rounded-full mr-4">
+                            <i class="fas {% if transaction.transaction_type == 'deposit' %}fa-arrow-down{% else %}fa-arrow-up{% endif %}"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="font-medium">{{ transaction.transaction_type|title }}</p>
+                            <p class="text-sm text-gray-600">{{ transaction.description|truncate(30) }}</p>
+                            <p class="text-xs text-gray-500 mt-1">{{ transaction.created_at[:10] }}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-bold {% if transaction.transaction_type == 'deposit' %}text-green-600{% else %}text-red-600{% endif %}">
+                                {% if transaction.transaction_type == 'deposit' %}+{% else %}-{% endif %}
+                                UGX {{ "{:,.0f}".format(transaction.amount|float) }}
+                            </p>
+                            <p class="text-sm text-gray-600">
+                                Ref: {{ transaction.reference_number[:8] }}
+                            </p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-8 text-gray-500">
+                        <i class="fas fa-exchange-alt text-4xl mb-3 opacity-20"></i>
+                        <p>No recent transactions</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Loan Applications Status -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold text-gray-800">Loan Applications</h3>
+                <a href="{{ url_for('member.loans') }}" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                    View All
+                </a>
+            </div>
+            
+            <div class="space-y-4">
+                {% if loan_applications|length > 0 %}
+                    {% for application in loan_applications[:3] %}
+                    <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <p class="font-medium">
+                                    UGX {{ "{:,.0f}".format(application.loan_amount|float) }}
+                                </p>
+                                <p class="text-sm text-gray-600">
+                                    {{ application.purpose|truncate(30) }}
+                                </p>
+                            </div>
+                            <span class="px-3 py-1 rounded-full text-xs font-medium
+                                {% if application.status == 'approved' %}bg-green-100 text-green-800
+                                {% elif application.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                {% elif application.status == 'rejected' %}bg-red-100 text-red-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ application.status|title }}
+                            </span>
+                        </div>
+                        <div class="text-sm text-gray-500">
+                            <div class="flex justify-between mt-2">
+                                <span>
+                                    Applied: {{ application.created_at[:10] }}
+                                </span>
+                                <span>{{ application.repayment_period_months }} months</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-8 text-gray-500">
+                        <i class="fas fa-file-invoice-dollar text-4xl mb-3 opacity-20"></i>
+                        <p>No loan applications</p>
+                        <a href="{{ url_for('member.loans') }}" class="inline-block mt-3 text-blue-600 hover:text-blue-800 text-sm font-medium">
+                            Apply for a loan
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-xl p-6">
+            <div class="flex items-center mb-4">
+                <div class="bg-blue-500 p-3 rounded-lg">
+                    <i class="fas fa-piggy-bank text-white text-xl"></i>
+                </div>
+                <div class="ml-4">
+                    <h3 class="text-xl font-semibold">Savings</h3>
+                    <p class="text-sm text-gray-600">View balance & transactions</p>
+                </div>
+            </div>
+            <a href="{{ url_for('member.savings') }}" class="inline-flex items-center text-blue-600 font-medium hover:text-blue-800 mt-4">
+                Go to Savings
+                <i class="fas fa-arrow-right ml-2"></i>
+            </a>
+        </div>
+
+        <div class="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-100 rounded-xl p-6">
+            <div class="flex items-center mb-4">
+                <div class="bg-green-500 p-3 rounded-lg">
+                    <i class="fas fa-hand-holding-usd text-white text-xl"></i>
+                </div>
+                <div class="ml-4">
+                    <h3 class="text-xl font-semibold">Loans</h3>
+                    <p class="text-sm text-gray-600">Apply & manage loans</p>
+                </div>
+            </div>
+            <a href="{{ url_for('member.loans') }}" class="inline-flex items-center text-green-600 font-medium hover:text-green-800 mt-4">
+                Go to Loans
+                <i class="fas fa-arrow-right ml-2"></i>
+            </a>
+        </div>
+
+        <div class="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-100 rounded-xl p-6">
+            <div class="flex items-center mb-4">
+                <div class="bg-purple-500 p-3 rounded-lg">
+                    <i class="fas fa-file-invoice-dollar text-white text-xl"></i>
+                </div>
+                <div class="ml-4">
+                    <h3 class="text-xl font-semibold">Statements</h3>
+                    <p class="text-sm text-gray-600">Download statements</p>
+                </div>
+            </div>
+            <a href="{{ url_for('member.statements') }}" class="inline-flex items-center text-purple-600 font-medium hover:text-purple-800 mt-4">
+                Get Statements
+                <i class="fas fa-arrow-right ml-2"></i>
+            </a>
+        </div>
+    </div>
+
+    <!-- Account Information -->
+    <div class="bg-white rounded-xl shadow-lg p-6">
+        <h3 class="text-xl font-bold text-gray-800 mb-6">Account Information</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div>
+                <p class="text-sm text-gray-500">Membership Date</p>
+                <p class="font-medium">{{ member.created_at[:10] }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500">Email</p>
+                <p class="font-medium">{{ member.email }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500">Phone</p>
+                <p class="font-medium">{{ member.phone_number }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500">Savings Account</p>
+                <p class="font-medium">{{ savings_account.account_number }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500">Loan Account</p>
+                <p class="font-medium">{{ loan_account.account_number }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500">Last Updated</p>
+                <p class="font-medium">{{ member.updated_at[:10] }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

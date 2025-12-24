@@ -1,0 +1,661 @@
+{% extends "adminbase.html" %}
+
+{% block title %}Financial Reports - LUNSERK SACCO Admin{% endblock %}
+
+{% block breadcrumb %}Expenses & Incomes / Reports{% endblock %}
+
+{% block page_title %}Financial Reports{% endblock %}
+
+{% block page_subtitle %}Generate and view financial performance reports{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Report Filters -->
+    <div class="card-glass rounded-2xl p-6">
+        <h3 class="text-lg font-bold text-gray-800 mb-4">Report Filters</h3>
+        <form method="GET" id="reportFilterForm" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <!-- Date Range -->
+            <div>
+                <label for="start_date" class="block text-sm font-medium text-gray-700 mb-2">
+                    Start Date
+                </label>
+                <input type="date" 
+                       id="start_date" 
+                       name="start_date"
+                       value="{{ start_date }}"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            </div>
+            
+            <div>
+                <label for="end_date" class="block text-sm font-medium text-gray-700 mb-2">
+                    End Date
+                </label>
+                <input type="date" 
+                       id="end_date" 
+                       name="end_date"
+                       value="{{ end_date }}"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            </div>
+            
+            <!-- Quick Date Buttons -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Quick Range
+                </label>
+                <div class="flex space-x-2">
+                    <button type="button"
+                            onclick="setDateRange('today')"
+                            class="flex-1 px-3 py-2 text-xs bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                        Today
+                    </button>
+                    <button type="button"
+                            onclick="setDateRange('week')"
+                            class="flex-1 px-3 py-2 text-xs bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                        This Week
+                    </button>
+                    <button type="button"
+                            onclick="setDateRange('month')"
+                            class="flex-1 px-3 py-2 text-xs bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                        This Month
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Actions -->
+            <div class="flex items-end space-x-2">
+                <button type="submit"
+                        class="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all">
+                    <i class="fas fa-chart-bar mr-2"></i> Generate Report
+                </button>
+                
+                <a href="{{ url_for('expense_incomes.financial_reports') }}" 
+                   class="px-6 py-2 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-colors">
+                    Reset
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Report Summary -->
+    <div class="card-glass rounded-2xl p-6">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+            <div>
+                <h3 class="text-lg font-bold text-gray-800">
+                    Financial Report
+                </h3>
+                <p class="text-gray-600">
+                    {{ report_data.start_date }} to {{ report_data.end_date }}
+                </p>
+            </div>
+            <div class="flex space-x-2 mt-4 md:mt-0">
+                <button onclick="printReport()"
+                        class="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors">
+                    <i class="fas fa-print mr-2"></i> Print Report
+                </button>
+                
+                <button onclick="exportToCSV()"
+                        class="px-4 py-2 border border-green-300 text-green-700 rounded-xl hover:bg-green-50 transition-colors">
+                    <i class="fas fa-file-export mr-2"></i> Export CSV
+                </button>
+            </div>
+        </div>
+
+        <!-- Financial Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Total Income -->
+            <div class="bg-gradient-to-r from-green-50 to-green-100 p-6 rounded-2xl border-l-4 border-green-500">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="p-3 bg-green-200 rounded-lg">
+                        <i class="fas fa-money-bill-wave text-green-600 text-xl"></i>
+                    </div>
+                    <span class="text-sm font-medium text-green-800">Total Income</span>
+                </div>
+                <p class="text-2xl font-bold text-gray-800 mb-2">
+                    UGX {{ "{:,.0f}".format(report_data.total_member_income + report_data.total_other_income + report_data.total_shares_income + report_data.total_loan_interest) }}
+                </p>
+                <p class="text-sm text-gray-600">All income sources</p>
+            </div>
+            
+            <!-- Total Expenses -->
+            <div class="bg-gradient-to-r from-red-50 to-red-100 p-6 rounded-2xl border-l-4 border-red-500">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="p-3 bg-red-200 rounded-lg">
+                        <i class="fas fa-file-invoice-dollar text-red-600 text-xl"></i>
+                    </div>
+                    <span class="text-sm font-medium text-red-800">Total Expenses</span>
+                </div>
+                <p class="text-2xl font-bold text-gray-800 mb-2">
+                    UGX {{ "{:,.0f}".format(report_data.total_expenses) }}
+                </p>
+                <p class="text-sm text-gray-600">Operational & administrative</p>
+            </div>
+            
+            <!-- Net Profit -->
+            <div class="bg-gradient-to-r from-purple-50 to-purple-100 p-6 rounded-2xl border-l-4 border-purple-500">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="p-3 bg-purple-200 rounded-lg">
+                        <i class="fas fa-chart-line text-purple-600 text-xl"></i>
+                    </div>
+                    <span class="text-sm font-medium text-purple-800">Net Profit</span>
+                </div>
+                <p class="text-2xl font-bold {% if report_data.net_profit >= 0 %}text-green-600{% else %}text-red-600{% endif %} mb-2">
+                    UGX {{ "{:,.0f}".format(report_data.net_profit) }}
+                </p>
+                <p class="text-sm text-gray-600">Total Income - Total Expenses</p>
+            </div>
+            
+            <!-- Profit Margin -->
+            <div class="bg-gradient-to-r from-blue-50 to-blue-100 p-6 rounded-2xl border-l-4 border-blue-500">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="p-3 bg-blue-200 rounded-lg">
+                        <i class="fas fa-percentage text-blue-600 text-xl"></i>
+                    </div>
+                    <span class="text-sm font-medium text-blue-800">Profit Margin</span>
+                </div>
+                {% set total_income = report_data.total_member_income + report_data.total_other_income + report_data.total_shares_income + report_data.total_loan_interest %}
+                {% if total_income > 0 %}
+                    {% set profit_margin = (report_data.net_profit / total_income) * 100 %}
+                    <p class="text-2xl font-bold {% if profit_margin >= 0 %}text-green-600{% else %}text-red-600{% endif %} mb-2">
+                        {{ "{:,.1f}".format(profit_margin) }}%
+                    </p>
+                {% else %}
+                    <p class="text-2xl font-bold text-gray-400 mb-2">0.0%</p>
+                {% endif %}
+                <p class="text-sm text-gray-600">Net Profit / Total Income</p>
+            </div>
+        </div>
+
+        <!-- Income Breakdown -->
+        <div class="mb-8">
+            <h4 class="text-md font-bold text-gray-800 mb-4">Income Breakdown</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Member Income -->
+                <div class="bg-white border border-gray-200 rounded-xl p-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-sm font-medium text-gray-700">Member Income</span>
+                        <div class="p-2 bg-green-100 rounded-lg">
+                            <i class="fas fa-users text-green-600"></i>
+                        </div>
+                    </div>
+                    <p class="text-lg font-bold text-gray-800">
+                        UGX {{ "{:,.0f}".format(report_data.total_member_income) }}
+                    </p>
+                    <p class="text-xs text-gray-500">Loans, fees, penalties</p>
+                </div>
+                
+                <!-- Other Income -->
+                <div class="bg-white border border-gray-200 rounded-xl p-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-sm font-medium text-gray-700">Other Income</span>
+                        <div class="p-2 bg-blue-100 rounded-lg">
+                            <i class="fas fa-money-bill text-blue-600"></i>
+                        </div>
+                    </div>
+                    <p class="text-lg font-bold text-gray-800">
+                        UGX {{ "{:,.0f}".format(report_data.total_other_income) }}
+                    </p>
+                    <p class="text-xs text-gray-500">Investments, services</p>
+                </div>
+                
+                <!-- Shares Income -->
+                <div class="bg-white border border-gray-200 rounded-xl p-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-sm font-medium text-gray-700">Shares Income</span>
+                        <div class="p-2 bg-orange-100 rounded-lg">
+                            <i class="fas fa-chart-pie text-orange-600"></i>
+                        </div>
+                    </div>
+                    <p class="text-lg font-bold text-gray-800">
+                        UGX {{ "{:,.0f}".format(report_data.total_shares_income) }}
+                    </p>
+                    <p class="text-xs text-gray-500">Share purchases & sales</p>
+                </div>
+                
+                <!-- Loan Interest -->
+                <div class="bg-white border border-gray-200 rounded-xl p-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-sm font-medium text-gray-700">Loan Interest</span>
+                        <div class="p-2 bg-purple-100 rounded-lg">
+                            <i class="fas fa-percentage text-purple-600"></i>
+                        </div>
+                    </div>
+                    <p class="text-lg font-bold text-gray-800">
+                        UGX {{ "{:,.0f}".format(report_data.total_loan_interest) }}
+                    </p>
+                    <p class="text-xs text-gray-500">Interest from loans</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detailed Breakdown -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Income Sources -->
+            <div>
+                <h4 class="text-md font-bold text-gray-800 mb-4">Income Sources</h4>
+                <div class="space-y-3">
+                    <!-- Member Income by Type -->
+                    {% if report_data.member_income_by_type %}
+                    <div class="mb-4">
+                        <h5 class="text-sm font-semibold text-gray-700 mb-2">Member Income</h5>
+                        {% for income_type, amount in report_data.member_income_by_type.items() %}
+                        <div class="flex justify-between items-center p-3 bg-gray-50 rounded-xl mb-2">
+                            <span class="text-sm text-gray-700">{{ income_type|replace('_', ' ')|title }}</span>
+                            <span class="font-medium text-gray-800">UGX {{ "{:,.0f}".format(amount) }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Other Income by Category -->
+                    {% if report_data.other_income_by_category %}
+                    <div class="mb-4">
+                        <h5 class="text-sm font-semibold text-gray-700 mb-2">Other Income</h5>
+                        {% for category, amount in report_data.other_income_by_category.items() %}
+                        <div class="flex justify-between items-center p-3 bg-gray-50 rounded-xl mb-2">
+                            <span class="text-sm text-gray-700">{{ category }}</span>
+                            <span class="font-medium text-gray-800">UGX {{ "{:,.0f}".format(amount) }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Expenses Breakdown -->
+            <div>
+                <h4 class="text-md font-bold text-gray-800 mb-4">Expenses Breakdown</h4>
+                <div class="space-y-3">
+                    {% if report_data.expenses_by_category %}
+                        {% for category, amount in report_data.expenses_by_category.items() %}
+                        <div class="flex justify-between items-center p-3 bg-gray-50 rounded-xl mb-2">
+                            <span class="text-sm text-gray-700">{{ category }}</span>
+                            <span class="font-medium text-gray-800">UGX {{ "{:,.0f}".format(amount) }}</span>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                    <div class="text-center py-8 text-gray-500">
+                        <i class="fas fa-shopping-cart text-3xl mb-2"></i>
+                        <p>No expense data for this period</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Profit/Loss Analysis -->
+        <div class="mt-8 pt-8 border-t border-gray-200">
+            <h4 class="text-md font-bold text-gray-800 mb-4">Profit/Loss Analysis</h4>
+            <div class="bg-gradient-to-r from-gray-50 to-gray-100 p-6 rounded-2xl">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Total Income -->
+                    <div class="text-center">
+                        <p class="text-sm text-gray-600 mb-1">Total Income</p>
+                        <p class="text-2xl font-bold text-green-600">
+                            UGX {{ "{:,.0f}".format(report_data.total_member_income + report_data.total_other_income + report_data.total_shares_income + report_data.total_loan_interest) }}
+                        </p>
+                        <div class="mt-2 text-xs text-gray-500">
+                            <div class="flex justify-between">
+                                <span>Member Income:</span>
+                                <span>UGX {{ "{:,.0f}".format(report_data.total_member_income) }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Other Income:</span>
+                                <span>UGX {{ "{:,.0f}".format(report_data.total_other_income) }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Shares Income:</span>
+                                <span>UGX {{ "{:,.0f}".format(report_data.total_shares_income) }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Loan Interest:</span>
+                                <span>UGX {{ "{:,.0f}".format(report_data.total_loan_interest) }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Minus Sign -->
+                    <div class="flex items-center justify-center">
+                        <i class="fas fa-minus text-gray-400 text-3xl"></i>
+                    </div>
+                    
+                    <!-- Total Expenses -->
+                    <div class="text-center">
+                        <p class="text-sm text-gray-600 mb-1">Total Expenses</p>
+                        <p class="text-2xl font-bold text-red-600">
+                            UGX {{ "{:,.0f}".format(report_data.total_expenses) }}
+                        </p>
+                        <p class="mt-2 text-xs text-gray-500">Operational & administrative costs</p>
+                    </div>
+                </div>
+                
+                <!-- Equals Sign -->
+                <div class="flex justify-center my-6">
+                    <i class="fas fa-equals text-gray-400 text-3xl"></i>
+                </div>
+                
+                <!-- Net Profit/Loss -->
+                <div class="text-center">
+                    <p class="text-sm text-gray-600 mb-1">Net Profit/Loss</p>
+                    <p class="text-3xl font-bold {% if report_data.net_profit >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                        UGX {{ "{:,.0f}".format(report_data.net_profit) }}
+                    </p>
+                    
+                    <!-- Profit Margin -->
+                    {% set total_income = report_data.total_member_income + report_data.total_other_income + report_data.total_shares_income + report_data.total_loan_interest %}
+                    {% if total_income > 0 %}
+                    {% set profit_margin = (report_data.net_profit / total_income) * 100 %}
+                    <div class="mt-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-sm text-gray-600">Profit Margin</span>
+                            <span class="text-sm font-medium {% if profit_margin >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                                {{ "{:,.1f}".format(profit_margin) }}%
+                            </span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-3">
+                            <div class="{% if profit_margin >= 0 %}bg-green-500{% else %}bg-red-500{% endif %} h-3 rounded-full" 
+                                 style="width: {{ profit_margin|abs }}%; max-width: 100%;"></div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Save Report -->
+        <div class="mt-8 pt-8 border-t border-gray-200">
+            <h4 class="text-md font-bold text-gray-800 mb-4">Save This Report</h4>
+            <form method="POST" action="{{ url_for('expense_incomes.generate_financial_report') }}" 
+                  class="flex flex-col md:flex-row gap-4">
+                <input type="hidden" name="start_date" value="{{ start_date }}">
+                <input type="hidden" name="end_date" value="{{ end_date }}">
+                
+                <div class="flex-1">
+                    <label for="notes" class="block text-sm font-medium text-gray-700 mb-2">
+                        Report Title/Notes
+                    </label>
+                    <input type="text" 
+                           id="notes" 
+                           name="notes"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           placeholder="e.g., Monthly Report December 2025"
+                           value="Financial Report: {{ start_date }} to {{ end_date }}">
+                </div>
+                
+                <div class="flex items-end">
+                    <button type="submit"
+                            class="px-6 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl hover:from-purple-700 hover:to-purple-800 transition-all">
+                        <i class="fas fa-save mr-2"></i> Save Report
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Quick date range functions
+    function setDateRange(rangeType) {
+        const today = new Date();
+        const startDateInput = document.getElementById('start_date');
+        const endDateInput = document.getElementById('end_date');
+        
+        switch(rangeType) {
+            case 'today':
+                const todayStr = today.toISOString().split('T')[0];
+                startDateInput.value = todayStr;
+                endDateInput.value = todayStr;
+                break;
+                
+            case 'week':
+                // Start of week (Monday)
+                const startOfWeek = new Date(today);
+                const day = startOfWeek.getDay();
+                const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1);
+                startOfWeek.setDate(diff);
+                
+                startDateInput.value = startOfWeek.toISOString().split('T')[0];
+                endDateInput.value = today.toISOString().split('T')[0];
+                break;
+                
+            case 'month':
+                // Start of month
+                const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+                startDateInput.value = startOfMonth.toISOString().split('T')[0];
+                endDateInput.value = today.toISOString().split('T')[0];
+                break;
+        }
+        
+        // Submit the form
+        document.getElementById('reportFilterForm').submit();
+    }
+    
+    // Set default dates if not set
+    document.addEventListener('DOMContentLoaded', function() {
+        const startDateInput = document.getElementById('start_date');
+        const endDateInput = document.getElementById('end_date');
+        
+        if (!startDateInput.value) {
+            // Default to start of month
+            const today = new Date();
+            const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+            startDateInput.value = startOfMonth.toISOString().split('T')[0];
+        }
+        
+        if (!endDateInput.value) {
+            // Default to today
+            const today = new Date();
+            endDateInput.value = today.toISOString().split('T')[0];
+        }
+    });
+    
+    // Print report function
+    function printReport() {
+        const printContent = `
+            <html>
+            <head>
+                <title>Financial Report - LUNSERK SACCO</title>
+                <style>
+                    body { font-family: Arial, sans-serif; margin: 20px; }
+                    .header { text-align: center; margin-bottom: 30px; }
+                    .header h1 { color: #333; margin-bottom: 5px; }
+                    .header p { color: #666; }
+                    .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px; }
+                    .summary-card { padding: 20px; border-radius: 10px; border-left: 4px solid; }
+                    .summary-card.green { background: #f0f9f0; border-color: #10b981; }
+                    .summary-card.blue { background: #f0f7ff; border-color: #3b82f6; }
+                    .summary-card.red { background: #fef2f2; border-color: #ef4444; }
+                    .summary-card.purple { background: #f5f3ff; border-color: #8b5cf6; }
+                    .section { margin-bottom: 30px; }
+                    .section h3 { color: #333; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; }
+                    .data-table { width: 100%; border-collapse: collapse; }
+                    .data-table th, .data-table td { padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+                    .data-table th { background: #f9fafb; color: #374151; }
+                    .profit-analysis { background: #f9fafb; padding: 20px; border-radius: 10px; margin: 30px 0; }
+                    .profit-row { display: flex; justify-content: space-between; align-items: center; margin: 10px 0; }
+                    @media print {
+                        .no-print { display: none; }
+                        @page { margin: 0.5in; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h1>LUNSERK SACCO - Financial Report</h1>
+                    <p>Date Range: {{ report_data.start_date }} to {{ report_data.end_date }}</p>
+                    <p>Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
+                </div>
+                
+                <div class="summary">
+                    <div class="summary-card green">
+                        <h4>Total Income</h4>
+                        <h2>UGX {{ "{:,.0f}".format(report_data.total_member_income + report_data.total_other_income + report_data.total_shares_income + report_data.total_loan_interest) }}</h2>
+                    </div>
+                    <div class="summary-card red">
+                        <h4>Total Expenses</h4>
+                        <h2>UGX {{ "{:,.0f}".format(report_data.total_expenses) }}</h2>
+                    </div>
+                    <div class="summary-card purple">
+                        <h4>Net Profit/Loss</h4>
+                        <h2>UGX {{ "{:,.0f}".format(report_data.net_profit) }}</h2>
+                    </div>
+                    <div class="summary-card blue">
+                        <h4>Profit Margin</h4>
+                        {% set total_income = report_data.total_member_income + report_data.total_other_income + report_data.total_shares_income + report_data.total_loan_interest %}
+                        {% if total_income > 0 %}
+                            {% set profit_margin = (report_data.net_profit / total_income) * 100 %}
+                            <h2>{{ "{:,.1f}".format(profit_margin) }}%</h2>
+                        {% else %}
+                            <h2>0.0%</h2>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h3>Income Breakdown</h3>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Income Source</th>
+                                <th>Amount (UGX)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Member Income</td>
+                                <td>{{ "{:,.0f}".format(report_data.total_member_income) }}</td>
+                            </tr>
+                            <tr>
+                                <td>Other Income</td>
+                                <td>{{ "{:,.0f}".format(report_data.total_other_income) }}</td>
+                            </tr>
+                            <tr>
+                                <td>Shares Income</td>
+                                <td>{{ "{:,.0f}".format(report_data.total_shares_income) }}</td>
+                            </tr>
+                            <tr>
+                                <td>Loan Interest</td>
+                                <td>{{ "{:,.0f}".format(report_data.total_loan_interest) }}</td>
+                            </tr>
+                            <tr style="border-top: 2px solid #333;">
+                                <td><strong>Total Income</strong></td>
+                                <td><strong>{{ "{:,.0f}".format(report_data.total_member_income + report_data.total_other_income + report_data.total_shares_income + report_data.total_loan_interest) }}</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="profit-analysis">
+                    <h3>Profit Analysis</h3>
+                    <div class="profit-row">
+                        <span>Total Income:</span>
+                        <strong>UGX {{ "{:,.0f}".format(report_data.total_member_income + report_data.total_other_income + report_data.total_shares_income + report_data.total_loan_interest) }}</strong>
+                    </div>
+                    <div class="profit-row">
+                        <span>Total Expenses:</span>
+                        <strong>UGX {{ "{:,.0f}".format(report_data.total_expenses) }}</strong>
+                    </div>
+                    <div class="profit-row">
+                        <span>Net Profit/Loss:</span>
+                        <strong>UGX {{ "{:,.0f}".format(report_data.net_profit) }}</strong>
+                    </div>
+                </div>
+                
+                <div class="footer" style="margin-top: 50px; text-align: center; color: #666; font-size: 12px;">
+                    <p>--- End of Report ---</p>
+                    <p>Generated by LUNSERK SACCO Financial System</p>
+                </div>
+            </body>
+            </html>
+        `;
+        
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(printContent);
+        printWindow.document.close();
+        printWindow.focus();
+        printWindow.print();
+    }
+    
+    // Export to CSV function
+    function exportToCSV() {
+        // Create CSV data
+        let csvData = [];
+        
+        // Header
+        csvData.push('LUNSERK SACCO - Financial Report');
+        csvData.push(`Date Range: {{ report_data.start_date }} to {{ report_data.end_date }}`);
+        csvData.push(`Generated on: ${new Date().toLocaleDateString()}`);
+        csvData.push('');
+        
+        // Summary Data
+        csvData.push('SUMMARY');
+        csvData.push('Item,Amount (UGX)');
+        csvData.push(`Total Income,{{ "{:,.0f}".format(report_data.total_member_income + report_data.total_other_income + report_data.total_shares_income + report_data.total_loan_interest) }}`);
+        csvData.push(`Total Expenses,{{ "{:,.0f}".format(report_data.total_expenses) }}`);
+        csvData.push(`Net Profit/Loss,{{ "{:,.0f}".format(report_data.net_profit) }}`);
+        csvData.push('');
+        
+        // Income Breakdown
+        csvData.push('INCOME BREAKDOWN');
+        csvData.push('Source,Amount (UGX)');
+        csvData.push(`Member Income,{{ "{:,.0f}".format(report_data.total_member_income) }}`);
+        csvData.push(`Other Income,{{ "{:,.0f}".format(report_data.total_other_income) }}`);
+        csvData.push(`Shares Income,{{ "{:,.0f}".format(report_data.total_shares_income) }}`);
+        csvData.push(`Loan Interest,{{ "{:,.0f}".format(report_data.total_loan_interest) }}`);
+        csvData.push('');
+        
+        // Create blob and download
+        const blob = new Blob([csvData.join('\n')], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        
+        link.setAttribute('href', url);
+        link.setAttribute('download', `financial_report_{{ report_data.start_date }}_to_{{ report_data.end_date }}.csv`);
+        link.style.visibility = 'hidden';
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+</script>
+
+<style>
+    .card-glass {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(229, 231, 235, 0.8);
+    }
+    
+    .hover-lift {
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    }
+    
+    .hover-lift:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+    
+    /* Custom scrollbar */
+    .overflow-x-auto {
+        scrollbar-width: thin;
+        scrollbar-color: #cbd5e1 #f1f5f9;
+    }
+    
+    .overflow-x-auto::-webkit-scrollbar {
+        height: 8px;
+    }
+    
+    .overflow-x-auto::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 4px;
+    }
+    
+    .overflow-x-auto::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+    }
+    
+    .overflow-x-auto::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+</style>
+{% endblock %}

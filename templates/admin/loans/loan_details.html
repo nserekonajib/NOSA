@@ -1,0 +1,591 @@
+{% extends "adminbase.html" %}
+
+{% block title %}Loan Details - LUNSERK SACCO Admin{% endblock %}
+
+{% block breadcrumb %}Loans / Accounts / Details{% endblock %}
+
+{% block page_title %}Loan Account Details{% endblock %}
+
+{% block page_subtitle %}{{ loan.loan_number }}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+    <!-- Loan Header -->
+    <div class="card-glass rounded-2xl p-6">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+            <div class="flex items-center mb-4 lg:mb-0">
+                <div class="p-3 bg-gradient-to-r from-red-500 to-red-600 rounded-lg mr-4">
+                    <i class="fas fa-landmark text-white text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-gray-800">{{ loan.loan_number }}</h3>
+                    <p class="text-gray-600">
+                        <span class="font-medium">{{ loan.member.full_name if loan.member else 'Unknown' }}</span> • 
+                        {{ loan.member.member_number }} • {{ loan.loan_product.product_name if loan.loan_product else 'Unknown' }}
+                    </p>
+                </div>
+            </div>
+            
+            <div class="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-3">
+                <div class="text-right">
+                    <div class="text-sm text-gray-600">Outstanding Balance</div>
+                    <div class="text-2xl font-bold text-red-600">UGX {{ "{:,.0f}".format(outstanding) }}</div>
+                </div>
+                
+                {% if loan.loan_status == 'active' or loan.loan_status == 'overdue' %}
+                <button onclick="openRepaymentModal()"
+                        class="px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 transition-all">
+                    <i class="fas fa-money-bill-wave mr-2"></i> Record Repayment
+                </button>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Status & Progress -->
+        <div class="mt-6 pt-6 border-t border-gray-200 grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+                <div class="text-sm text-gray-600">Loan Status</div>
+                {% if loan.loan_status == 'active' %}
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                    <i class="fas fa-circle mr-1 text-xs"></i> Active
+                </span>
+                {% elif loan.loan_status == 'overdue' %}
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                    <i class="fas fa-exclamation-circle mr-1"></i> Overdue
+                    {% if days_overdue > 0 %}
+                    <span class="ml-1">({{ days_overdue }} days)</span>
+                    {% endif %}
+                </span>
+                {% elif loan.loan_status == 'completed' %}
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                    <i class="fas fa-check-circle mr-1"></i> Completed
+                </span>
+                {% endif %}
+            </div>
+            
+            <div>
+                <div class="text-sm text-gray-600">Repayment Progress</div>
+                <div class="flex items-center">
+                    <div class="flex-1 bg-gray-200 rounded-full h-2 mr-2">
+                        <div class="bg-green-500 h-2 rounded-full" style="width: {{ ((loan.loan_amount|float - outstanding|float) / loan.loan_amount|float * 100)|round|int }}%"></div>
+                    </div>
+                    <span class="text-sm font-medium">{{ ((loan.loan_amount|float - outstanding|float) / loan.loan_amount|float * 100)|round|int }}%</span>
+                </div>
+            </div>
+            
+            <div>
+                <div class="text-sm text-gray-600">Total Repaid</div>
+                <div class="text-lg font-bold text-green-600">UGX {{ "{:,.0f}".format(total_paid) }}</div>
+            </div>
+            
+            <div>
+                <div class="text-sm text-gray-600">Next Payment</div>
+                {% if loan.loan_status == 'completed' %}
+                <div class="text-lg font-medium text-gray-500">Loan Completed</div>
+                {% else %}
+                <div class="text-lg font-bold text-gray-800">UGX {{ "{:,.0f}".format(loan.installment_amount) }}</div>
+                <div class="text-sm text-gray-500">
+                    {% if loan.first_repayment_date %}
+                        {{ loan.first_repayment_date[:10] }}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Left Column: Loan Details -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Loan Information -->
+            <div class="card-glass rounded-2xl p-6">
+                <h4 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Loan Information</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600">Loan Amount</label>
+                            <p class="text-2xl font-bold text-gray-800">UGX {{ "{:,.0f}".format(loan.loan_amount) }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600">Approved Amount</label>
+                            <p class="font-medium">UGX {{ "{:,.0f}".format(loan.approved_amount) }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600">Disbursed Amount</label>
+                            <p class="font-medium">UGX {{ "{:,.0f}".format(loan.disbursed_amount) }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600">Purpose</label>
+                            <p class="text-gray-700">{{ loan.purpose or 'Not specified' }}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600">Interest Rate</label>
+                            <p class="font-medium">{{ loan.interest_rate }}% {{ loan.interest_type|replace('_', ' ')|title }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600">Repayment Period</label>
+                            <p class="font-medium">{{ loan.repayment_period }} months</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600">Monthly Installment</label>
+                            <p class="font-medium">UGX {{ "{:,.0f}".format(loan.installment_amount) }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600">Disbursement Method</label>
+                            <p class="font-medium">{{ loan.disbursement_method|replace('_', ' ')|title }}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Fees -->
+                <div class="mt-6 pt-6 border-t border-gray-200 grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600">Processing Fee</label>
+                        <p class="font-medium">UGX {{ "{:,.0f}".format(loan.processing_fee) }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600">Insurance Fee</label>
+                        <p class="font-medium">UGX {{ "{:,.0f}".format(loan.insurance_fee) }}</p>
+                    </div>
+                </div>
+                
+                <!-- Dates -->
+                <div class="mt-6 pt-6 border-t border-gray-200 grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600">Disbursement Date</label>
+                        <p class="font-medium">{{ loan.disbursement_date[:10] if loan.disbursement_date else 'N/A' }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600">First Repayment</label>
+                        <p class="font-medium">{{ loan.first_repayment_date[:10] if loan.first_repayment_date else 'N/A' }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600">Final Repayment</label>
+                        <p class="font-medium">{{ loan.final_repayment_date[:10] if loan.final_repayment_date else 'N/A' }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Repayment Schedule -->
+            <div class="card-glass rounded-2xl p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h4 class="text-lg font-bold text-gray-800">Repayment Schedule</h4>
+                    <span class="text-sm text-gray-600">{{ schedule|length }} installments</span>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">#</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Due Date</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Amount Due</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Principal</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Interest</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Paid</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {% for installment in schedule %}
+                            <tr class="hover:bg-gray-50 {% if installment.status == 'overdue' %}bg-red-50{% elif installment.status == 'paid' %}bg-green-50{% endif %}">
+                                <td class="px-4 py-3 text-sm text-gray-900">{{ installment.installment_number }}</td>
+                                <td class="px-4 py-3 text-sm text-gray-900">{{ installment.due_date[:10] }}</td>
+                                <td class="px-4 py-3 text-sm font-medium">UGX {{ "{:,.0f}".format(installment.installment_amount) }}</td>
+                                <td class="px-4 py-3 text-sm text-gray-600">UGX {{ "{:,.0f}".format(installment.principal_component) }}</td>
+                                <td class="px-4 py-3 text-sm text-gray-600">UGX {{ "{:,.0f}".format(installment.interest_component) }}</td>
+                                <td class="px-4 py-3 text-sm font-medium">
+                                    {% if installment.amount_paid %}
+                                    UGX {{ "{:,.0f}".format(installment.amount_paid) }}
+                                    {% if installment.payment_date %}
+                                    <div class="text-xs text-gray-500">{{ installment.payment_date[:10] }}</div>
+                                    {% endif %}
+                                    {% else %}
+                                    -
+                                    {% endif %}
+                                </td>
+                                <td class="px-4 py-3">
+                                    {% if installment.status == 'paid' %}
+                                    <span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">Paid</span>
+                                    {% elif installment.status == 'partial' %}
+                                    <span class="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">Partial</span>
+                                    {% elif installment.status == 'overdue' %}
+                                    <span class="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">Overdue</span>
+                                    {% elif installment.status == 'grace_period' %}
+                                    <span class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">Grace</span>
+                                    {% else %}
+                                    <span class="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">Pending</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="7" class="px-4 py-8 text-center text-gray-500">
+                                    No repayment schedule found
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Member & Transactions -->
+        <div class="space-y-6">
+            <!-- Member Information -->
+            <div class="card-glass rounded-2xl p-6">
+                <div class="flex items-center space-x-3 mb-4">
+                    <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">
+                        {{ loan.member.full_name[:1] }}
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-gray-800">{{ loan.member.full_name if loan.member else 'Unknown' }}</h4>
+                        <p class="text-sm text-gray-600">{{ loan.member.member_number }}</p>
+                    </div>
+                </div>
+                
+                <div class="space-y-3">
+                    <div class="flex justify-between">
+                        <span class="text-sm text-gray-600">Email</span>
+                        <span class="font-medium">{{ loan.member.email }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-sm text-gray-600">Phone</span>
+                        <span class="font-medium">{{ loan.member.phone_number }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-sm text-gray-600">Status</span>
+                        <span class="font-medium">{{ loan.member.account_status|title }}</span>
+                    </div>
+                </div>
+                
+                <div class="mt-4 pt-4 border-t border-gray-200">
+                    <a href="{{ url_for('members.member_details', member_id=loan.member.id) }}"
+                       class="block text-center px-4 py-2 bg-blue-100 text-blue-600 rounded-xl hover:bg-blue-200 transition-colors">
+                        <i class="fas fa-user mr-2"></i> View Member Profile
+                    </a>
+                </div>
+            </div>
+
+            <!-- Recent Transactions -->
+            <div class="card-glass rounded-2xl p-6">
+                <h4 class="text-lg font-bold text-gray-800 mb-4">Recent Transactions</h4>
+                
+                <div class="space-y-4">
+                    {% for transaction in transactions[:5] %}
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                        <div>
+                            <div class="font-medium text-gray-800">
+                                {{ transaction.transaction_type|title }}
+                            </div>
+                            <div class="text-xs text-gray-500">
+                                {{ transaction.created_at[:16] }}
+                                {% if transaction.reference_number %}
+                                • {{ transaction.reference_number }}
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="font-bold {% if transaction.transaction_type == 'disbursement' %}text-red-600{% else %}text-green-600{% endif %}">
+                                UGX {{ "{:,.0f}".format(transaction.amount) }}
+                            </div>
+                            <div class="text-xs text-gray-500">
+                                {{ transaction.payment_method|replace('_', ' ')|title }}
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <p class="text-gray-500 text-center py-4">No transactions yet</p>
+                    {% endfor %}
+                    
+                    {% if transactions|length > 5 %}
+                    <a href="#"
+                       class="block text-center px-4 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors">
+                        View All Transactions
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Recent Repayments -->
+            <div class="card-glass rounded-2xl p-6">
+                <h4 class="text-lg font-bold text-gray-800 mb-4">Recent Repayments</h4>
+                
+                <div class="space-y-4">
+                    {% for repayment in repayments[:5] %}
+                    <div class="flex items-center justify-between p-3 bg-green-50 rounded-xl">
+                        <div>
+                            <div class="font-medium text-gray-800">
+                                {{ repayment.payment_method|replace('_', ' ')|title }}
+                            </div>
+                            <div class="text-xs text-gray-500">
+                                {{ repayment.payment_date[:10] }}
+                                {% if repayment.reference_number %}
+                                • {{ repayment.reference_number }}
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="font-bold text-green-600">
+                                UGX {{ "{:,.0f}".format(repayment.amount_paid) }}
+                            </div>
+                            <div class="text-xs text-gray-500">
+                                {% if repayment.comments %}
+                                {{ repayment.comments[:30] }}{% if repayment.comments|length > 30 %}...{% endif %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <p class="text-gray-500 text-center py-4">No repayments yet</p>
+                    {% endfor %}
+                    
+                    {% if repayments|length > 5 %}
+                    <a href="#"
+                       class="block text-center px-4 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors">
+                        View All Repayments
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Repayment Modal -->
+<div id="repaymentModal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+    <div class="modal-content bg-white rounded-2xl w-full max-w-md">
+        <div class="p-6">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-money-bill-wave text-green-500 text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-bold text-gray-800 mb-2">Record Repayment</h3>
+                <p class="text-gray-600">Loan: {{ loan.loan_number }}</p>
+                <p class="text-sm text-gray-500">Outstanding: <span class="font-bold text-red-600">UGX {{ "{:,.0f}".format(outstanding) }}</span></p>
+            </div>
+            
+            <form id="repaymentForm">
+                <div class="space-y-4">
+                    <input type="hidden" id="loanId" value="{{ loan.id }}">
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Amount (UGX) *</label>
+                        <input type="number" id="repaymentAmount" required step="100" min="1000" max="{{ outstanding|float }}"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                               placeholder="Enter amount">
+                        <p class="text-xs text-gray-500 mt-1">Minimum: 1,000 UGX</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Payment Method *</label>
+                        <select id="paymentMethod" required
+                                class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                            <option value="">Select method</option>
+                            <option value="cash">Cash</option>
+                            <option value="bank_transfer">Bank Transfer</option>
+                            <option value="mobile_money">Mobile Money</option>
+                            <option value="cheque">Cheque</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Reference Number</label>
+                        <input type="text" id="referenceNumber"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                               placeholder="e.g., MTN-123456">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Comments (Optional)</label>
+                        <textarea id="repaymentComments" rows="2"
+                                  class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                  placeholder="Add any comments..."></textarea>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" onclick="closeModal()"
+                            class="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            class="px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800">
+                        <i class="fas fa-save mr-2"></i> Record Repayment
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Open repayment modal
+    function openRepaymentModal() {
+        const modal = document.getElementById('repaymentModal');
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+
+    // Close modal
+    function closeModal() {
+        const modal = document.getElementById('repaymentModal');
+        modal.classList.add('hidden');
+        document.body.style.overflow = 'auto';
+        // Reset form
+        document.getElementById('repaymentForm').reset();
+    }
+
+    // Handle repayment form submission
+    document.getElementById('repaymentForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = {
+            amount: document.getElementById('repaymentAmount').value,
+            payment_method: document.getElementById('paymentMethod').value,
+            reference_number: document.getElementById('referenceNumber').value,
+            comments: document.getElementById('repaymentComments').value
+        };
+        
+        const loanId = document.getElementById('loanId').value;
+        const button = this.querySelector('button[type="submit"]');
+        const originalText = button.innerHTML;
+        
+        // Validate amount
+        const outstanding = parseFloat('{{ outstanding|float }}');
+        const amount = parseFloat(formData.amount);
+        
+        if (amount < 1000) {
+            alert('Minimum repayment amount is 1,000 UGX');
+            return;
+        }
+        
+        if (amount > outstanding) {
+            alert('Repayment amount cannot exceed outstanding balance');
+            return;
+        }
+        
+        if (!formData.payment_method) {
+            alert('Please select a payment method');
+            return;
+        }
+        
+        // Show loading
+        button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Processing...';
+        button.disabled = true;
+        
+        fetch('/admin/loans/loan/' + loanId + '/record-repayment', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Show success message
+                showToast('Repayment recorded successfully!', 'success');
+                
+                // Close modal and reload page after delay
+                setTimeout(() => {
+                    closeModal();
+                    location.reload();
+                }, 1500);
+            } else {
+                button.innerHTML = originalText;
+                button.disabled = false;
+                showToast('Error: ' + data.message, 'error');
+            }
+        })
+        .catch(error => {
+            button.innerHTML = originalText;
+            button.disabled = false;
+            showToast('Network error. Please try again.', 'error');
+        });
+    });
+
+    // Show toast notification
+    function showToast(message, type) {
+        const toast = document.createElement('div');
+        toast.className = `fixed top-4 right-4 z-50 px-6 py-3 rounded-xl shadow-lg border-l-4 transform transition-all duration-300 translate-x-full ${
+            type === 'success' ? 'bg-green-50 text-green-700 border-green-500' : 'bg-red-50 text-red-700 border-red-500'
+        }`;
+        toast.innerHTML = `
+            <div class="flex items-center">
+                <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} mr-3 text-lg"></i>
+                <span>${message}</span>
+            </div>
+        `;
+        
+        document.body.appendChild(toast);
+        
+        // Animate in
+        setTimeout(() => {
+            toast.classList.remove('translate-x-full');
+            toast.classList.add('translate-x-0');
+        }, 10);
+        
+        // Remove after 3 seconds
+        setTimeout(() => {
+            toast.classList.remove('translate-x-0');
+            toast.classList.add('translate-x-full');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+
+    // Close modal on outside click
+    window.onclick = function(event) {
+        if (event.target.classList.contains('modal')) {
+            closeModal();
+        }
+    }
+</script>
+
+<style>
+    table {
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+    
+    th {
+        position: sticky;
+        top: 0;
+        background-color: #f9fafb;
+        z-index: 10;
+    }
+    
+    td, th {
+        border-bottom: 1px solid #e5e7eb;
+    }
+    
+    tr:last-child td {
+        border-bottom: none;
+    }
+    
+    .modal {
+        animation: fadeIn 0.3s ease-out;
+    }
+    
+    .modal-content {
+        animation: slideUp 0.3s ease-out;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    
+    @keyframes slideUp {
+        from { transform: translateY(20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+</style>
+{% endblock %}

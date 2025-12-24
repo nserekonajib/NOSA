@@ -1,0 +1,192 @@
+{% extends "adminbase.html" %}
+
+{% block title %}Add Expense - LUNSERK SACCO Admin{% endblock %}
+
+{% block breadcrumb %}Expenses & Incomes / Expenses / Add{% endblock %}
+
+{% block page_title %}Add New Expense{% endblock %}
+
+{% block page_subtitle %}Record a new expense for the SACCO{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="card-glass rounded-2xl p-6">
+        <form method="POST" id="addExpenseForm" class="space-y-6">
+            <!-- Expense Details -->
+            <div>
+                <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Expense Details</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Category -->
+                                    <select id="category_id" name="category_id" required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                    <option value="">Select Category</option>
+                    {% for category in categories %}
+                    <option value="{{ category.id }}">{{ category.name }}</option>
+                    {% else %}
+                    <option value="" disabled>No categories available. Please contact administrator.</option>
+                    {% endfor %}
+                </select>
+                    
+                    <!-- Amount -->
+                    <div>
+                        <label for="amount" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-money-bill-wave text-blue-500 mr-1"></i> Amount (UGX) *
+                        </label>
+                        <input type="number" id="amount" name="amount" required step="100"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                               placeholder="50000">
+                    </div>
+                    
+                  <!-- Payment Date -->
+                    <div>
+                        <label for="payment_date" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-calendar-alt text-blue-500 mr-1"></i> Payment Date *
+                        </label>
+                        <input type="date" id="payment_date" name="payment_date" required
+                            class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                    </div>
+
+                    <!-- Payment Method -->
+                    <div>
+                        <label for="payment_method" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-credit-card text-blue-500 mr-1"></i> Payment Method *
+                        </label>
+                        <select id="payment_method" name="payment_method" required
+                                class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                            <option value="">Select Method</option>
+                            <option value="cash">Cash</option>
+                            <option value="mobile_money">Mobile Money</option>
+                            <option value="bank_transfer">Bank Transfer</option>
+                            <option value="cheque">Cheque</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Description -->
+                <div class="mt-4">
+                    <label for="description" class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-align-left text-blue-500 mr-1"></i> Description
+                    </label>
+                    <textarea id="description" name="description" rows="3"
+                              class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                              placeholder="Describe the purpose of this expense..."></textarea>
+                </div>
+            </div>
+
+            <!-- Payment Information -->
+            <div>
+                <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Payment Information</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Paid To -->
+                    <div>
+                        <label for="paid_to" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-user text-blue-500 mr-1"></i> Paid To
+                        </label>
+                        <input type="text" id="paid_to" name="paid_to"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                               placeholder="Name of person/vendor">
+                    </div>
+                    
+                    <!-- Reference Number -->
+                    <div>
+                        <label for="reference_number" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-hashtag text-blue-500 mr-1"></i> Reference Number
+                        </label>
+                        <input type="text" id="reference_number" name="reference_number"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                               placeholder="Transaction reference">
+                    </div>
+                </div>
+                
+                <!-- Notes -->
+                <div class="mt-4">
+                    <label for="notes" class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-sticky-note text-blue-500 mr-1"></i> Notes
+                    </label>
+                    <textarea id="notes" name="notes" rows="2"
+                              class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                              placeholder="Additional notes..."></textarea>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="pt-6 border-t border-gray-200">
+                <div class="flex justify-between">
+                    <a href="{{ url_for('expense_incomes.expenses_list') }}" 
+                       class="px-6 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors">
+                        <i class="fas fa-arrow-left mr-2"></i> Cancel
+                    </a>
+                    
+                    <button type="submit" 
+                            class="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all hover-lift">
+                        <i class="fas fa-save mr-2"></i> Save Expense
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Form validation
+    document.getElementById('addExpenseForm').addEventListener('submit', function(e) {
+        const amount = parseFloat(document.getElementById('amount').value) || 0;
+        const category = document.getElementById('category_id').value;
+        const paymentMethod = document.getElementById('payment_method').value;
+        const paymentDate = document.getElementById('payment_date').value;
+        
+        if (amount <= 0) {
+            e.preventDefault();
+            alert('Please enter a valid amount');
+            document.getElementById('amount').focus();
+            return false;
+        }
+        
+        if (!category) {
+            e.preventDefault();
+            alert('Please select a category');
+            document.getElementById('category_id').focus();
+            return false;
+        }
+        
+        if (!paymentMethod) {
+            e.preventDefault();
+            alert('Please select a payment method');
+            document.getElementById('payment_method').focus();
+            return false;
+        }
+        
+        if (!paymentDate) {
+            e.preventDefault();
+            alert('Please select a payment date');
+            document.getElementById('payment_date').focus();
+            return false;
+        }
+        
+        // Confirm before submitting
+        const confirmMessage = `Are you sure you want to record this expense of UGX ${amount.toLocaleString()}?`;
+        
+        if (!confirm(confirmMessage)) {
+            e.preventDefault();
+            return false;
+        }
+        
+        return true;
+    });
+    
+    // Set today's date as default
+    document.getElementById('payment_date').value = new Date().toISOString().split('T')[0];
+</script>
+
+<style>
+    .hover-lift {
+        transition: transform 0.2s ease-in-out;
+    }
+    
+    .hover-lift:hover {
+        transform: translateY(-2px);
+    }
+</style>
+{% endblock %}

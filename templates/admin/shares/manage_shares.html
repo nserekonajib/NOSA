@@ -1,0 +1,261 @@
+{% extends "adminbase.html" %}
+
+{% block title %}Shares Management - Admin Panel{% endblock %}
+
+{% block page_title %}Shares Management{% endblock %}
+{% block page_subtitle %}Manage SACCO shares and view statistics{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Quick Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white p-6 rounded-xl shadow">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm">Total Shares Issued</p>
+                    <p class="text-2xl font-bold text-gray-800 mt-1">{{ total_shares|int }}</p>
+                </div>
+                <div class="bg-blue-100 p-3 rounded-full">
+                    <i class="fas fa-chart-pie text-blue-600 text-lg"></i>
+                </div>
+            </div>
+            <p class="text-xs text-gray-500 mt-2">{{ members_with_shares }} out of {{ total_members }} members own shares</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm">Current Share Price</p>
+                    <p class="text-2xl font-bold text-green-600 mt-1">
+                        {% if current_share_value %}
+                            UGX {{ "{:,.0f}".format(current_share_value.value_per_share|float) }}
+                        {% else %}
+                            UGX 0
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="bg-green-100 p-3 rounded-full">
+                    <i class="fas fa-money-bill-wave text-green-600 text-lg"></i>
+                </div>
+            </div>
+            {% if current_share_value %}
+            <p class="text-xs text-gray-500 mt-2">Effective {{ current_share_value.effective_date }}</p>
+            {% endif %}
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm">Total Share Value</p>
+                    <p class="text-2xl font-bold text-purple-600 mt-1">
+                        UGX {{ "{:,.0f}".format(total_share_value) }}
+                    </p>
+                </div>
+                <div class="bg-purple-100 p-3 rounded-full">
+                    <i class="fas fa-hand-holding-usd text-purple-600 text-lg"></i>
+                </div>
+            </div>
+            <p class="text-xs text-gray-500 mt-2">Total value of all issued shares</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm">Active Members</p>
+                    <p class="text-2xl font-bold text-orange-600 mt-1">{{ total_members }}</p>
+                </div>
+                <div class="bg-orange-100 p-3 rounded-full">
+                    <i class="fas fa-users text-orange-600 text-lg"></i>
+                </div>
+            </div>
+            <p class="text-xs text-gray-500 mt-2">{{ members_with_shares }} members own shares</p>
+        </div>
+    </div>
+
+    <!-- Update Share Price Form -->
+    <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+        <h3 class="text-lg font-bold text-gray-800 mb-4">Update Share Price</h3>
+        <form method="POST" action="{{ url_for('shares_admin.update_share_value') }}" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        New Share Price (UGX)
+                    </label>
+                    <input type="number" 
+                           name="value_per_share" 
+                           min="1"
+                           step="100"
+                           required
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                           placeholder="Enter price per share">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Effective Date
+                    </label>
+                    <input type="date" 
+       name="effective_date"
+       value="{{ today_date }}"
+       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Description (Optional)
+                    </label>
+                    <input type="text" 
+                           name="description"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                           placeholder="Reason for price change">
+                </div>
+            </div>
+            <div class="flex justify-end">
+                <button type="submit" 
+                        class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    Update Share Price
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Two Column Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Recent Transactions -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-lg font-bold text-gray-800">Recent Share Transactions</h3>
+                <a href="{{ url_for('shares_admin.share_transactions') }}" 
+                   class="text-sm text-blue-600 hover:text-blue-800">
+                    View All
+                </a>
+            </div>
+            
+            <div class="space-y-4">
+                {% if transactions|length > 0 %}
+                    {% for transaction in transactions[:5] %}
+                    <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="font-medium">
+                                    {% if transaction.members %}
+                                        {{ transaction.members.full_name }}
+                                    {% else %}
+                                        Member
+                                    {% endif %}
+                                </p>
+                                <p class="text-sm text-gray-600">
+                                    {{ transaction.shares|int }} shares 
+                                    <span class="px-2 py-1 rounded-full text-xs font-medium 
+                                        {% if transaction.transaction_type == 'purchase' %}bg-green-100 text-green-800
+                                        {% else %}bg-red-100 text-red-800{% endif %} ml-2">
+                                        {{ transaction.transaction_type|title }}
+                                    </span>
+                                </p>
+                                <p class="text-xs text-gray-500 mt-1">
+                                    {{ transaction.transaction_date[:10] }}
+                                </p>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-bold text-gray-800">
+                                    UGX {{ "{:,.0f}".format(transaction.total_amount|float) }}
+                                </p>
+                                <p class="text-xs text-gray-500">
+                                    UGX {{ "{:,.0f}".format(transaction.price_per_share|float) }}/share
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-8 text-gray-500">
+                        <i class="fas fa-exchange-alt text-4xl mb-3 opacity-20"></i>
+                        <p>No recent transactions</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Top Shareholders -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-lg font-bold text-gray-800">Top Shareholders</h3>
+                <a href="{{ url_for('shares_admin.members_shares') }}" 
+                   class="text-sm text-blue-600 hover:text-blue-800">
+                    View All Members
+                </a>
+            </div>
+            
+            <div class="space-y-4">
+                {% if top_shareholders|length > 0 %}
+                    {% for member in top_shareholders[:5] %}
+                    <div class="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                                <i class="fas fa-user text-blue-600"></i>
+                            </div>
+                            <div>
+                                <p class="font-medium">{{ member.full_name }}</p>
+                                <p class="text-sm text-gray-600">{{ member.member_number }}</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-bold text-gray-800">{{ member.shares_owned|int }} shares</p>
+                            {% if current_share_value %}
+                            <p class="text-xs text-gray-500">
+                                UGX {{ "{:,.0f}".format(member.shares_owned|int * current_share_value.value_per_share|float) }}
+                            </p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-8 text-gray-500">
+                        <i class="fas fa-users text-4xl mb-3 opacity-20"></i>
+                        <p>No shareholders found</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Share Price History -->
+    <div class="bg-white rounded-xl shadow-lg p-6 mt-6">
+        <h3 class="text-lg font-bold text-gray-800 mb-6">Share Price History</h3>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="bg-gray-50">
+                        <th class="py-3 px-4 text-left text-sm font-medium text-gray-700">Effective Date</th>
+                        <th class="py-3 px-4 text-left text-sm font-medium text-gray-700">Price per Share</th>
+                        <th class="py-3 px-4 text-left text-sm font-medium text-gray-700">Currency</th>
+                        <th class="py-3 px-4 text-left text-sm font-medium text-gray-700">Description</th>
+                        <th class="py-3 px-4 text-left text-sm font-medium text-gray-700">Updated By</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% if value_history|length > 0 %}
+                        {% for value in value_history[:10] %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="py-3 px-4 text-sm">{{ value.effective_date }}</td>
+                            <td class="py-3 px-4 text-sm font-medium">
+                                UGX {{ "{:,.0f}".format(value.value_per_share|float) }}
+                            </td>
+                            <td class="py-3 px-4 text-sm">{{ value.currency }}</td>
+                            <td class="py-3 px-4 text-sm text-gray-600">{{ value.description|default('N/A') }}</td>
+                            <td class="py-3 px-4 text-sm text-gray-600">Admin</td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="5" class="py-8 text-center text-gray-500">
+                                <i class="fas fa-chart-line text-4xl mb-3 opacity-20"></i>
+                                <p>No share price history available</p>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

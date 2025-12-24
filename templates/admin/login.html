@@ -1,0 +1,118 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Admin Login - LUNSERK SACCO{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center gradient-bg py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full animate__animated animate__fadeIn">
+        <!-- Logo -->
+        <div class="flex justify-center mb-8">
+            <div class="logo-container">
+                <img src="https://i.ibb.co/Wvj23DvY/Gemini-Generated-Image-7j13hc7j13hc7j13-modified.png" 
+                     alt="LUNSERK SACCO Logo" 
+                     onerror="this.src='https://via.placeholder.com/120?text=LUNSERK'">
+            </div>
+        </div>
+        
+        <!-- Login Card -->
+        <div class="bg-white rounded-2xl shadow-2xl overflow-hidden card-hover">
+            <div class="px-8 py-8">
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-2">Admin Login</h2>
+                    <p class="text-gray-600">Secure access to LUNSERK SACCO Management System</p>
+                </div>
+                
+                <form id="loginForm" method="POST" action="{{ url_for('adminauth.admin_login') }}" 
+                      onsubmit="setLoading('loginBtn', true); return validateForm('loginForm');">
+                    {{ form.csrf_token if form }}
+                    
+                    <!-- Email Input -->
+                    <div class="mb-6">
+                        <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-envelope text-blue-500 mr-2"></i>Email Address
+                        </label>
+                        <div class="relative">
+                            <input type="email" id="email" name="email" 
+                                   value="{{ email if email else '' }}"
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus transition-all duration-200"
+                                   placeholder="admin@lunserk.com"
+                                   required>
+                            <div class="absolute right-3 top-3">
+                                <i class="fas fa-user-tie text-gray-400"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Password Input -->
+                    <div class="mb-6">
+                        <div class="flex justify-between items-center mb-2">
+                            <label for="password" class="block text-sm font-medium text-gray-700">
+                                <i class="fas fa-lock text-blue-500 mr-2"></i>Password
+                            </label>
+                            <a href="{{ url_for('adminauth.forgot_password') }}" 
+                               class="text-sm text-blue-600 hover:text-blue-800 transition-colors">
+                                Forgot Password?
+                            </a>
+                        </div>
+                        <div class="relative">
+                            <input type="password" id="password" name="password" 
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus transition-all duration-200"
+                                   placeholder="••••••••"
+                                   required>
+                            <div class="absolute right-3 top-3 cursor-pointer" onclick="togglePassword('password')">
+                                <i class="fas fa-eye text-gray-400 hover:text-blue-500"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Remember Me -->
+                    <div class="mb-6">
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" name="remember" 
+                                   class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                            <span class="ml-2 text-sm text-gray-700">Remember me for 30 days</span>
+                        </label>
+                    </div>
+                    
+                    <!-- Submit Button -->
+                    <button id="loginBtn" type="submit" 
+                            class="w-full btn-primary text-white font-semibold py-3 px-4 rounded-lg hover:shadow-lg transition-all duration-300 flex items-center justify-center">
+                        <i class="fas fa-sign-in-alt mr-2"></i> Login to Dashboard
+                    </button>
+                </form>
+                
+                <!-- Security Notice -->
+                <div class="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <div class="flex">
+                        <i class="fas fa-shield-alt text-blue-500 mt-1 mr-3"></i>
+                        <div>
+                            <p class="text-sm text-blue-800 font-medium">Security Notice</p>
+                            <p class="text-xs text-blue-700 mt-1">
+                                Ensure you're on the official LUNSERK SACCO portal. Never share your credentials.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Login Stats (Optional - can be removed) -->
+                <div class="mt-6 text-center">
+                    <p class="text-xs text-gray-500">
+                        <i class="fas fa-history mr-1"></i>
+                        Last login: {% if last_login %}{{ last_login }}{% else %}N/A{% endif %}
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Footer -->
+            <div class="bg-gray-50 px-8 py-4 border-t border-gray-200">
+                <div class="text-center">
+                    <p class="text-xs text-gray-600">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        For assistance, contact system administrator
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

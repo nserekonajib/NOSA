@@ -1,0 +1,425 @@
+{% extends "adminbase.html" %}
+
+{% block title %}Loan Applications - LUNSERK SACCO Admin{% endblock %}
+
+{% block breadcrumb %}Loans / Applications{% endblock %}
+
+{% block page_title %}Loan Applications{% endblock %}
+
+{% block page_subtitle %}Review and process loan applications{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header with Filters -->
+    <div class="card-glass rounded-2xl p-6">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+                <h2 class="text-lg font-bold text-gray-800">Loan Applications</h2>
+                <p class="text-sm text-gray-600">{{ total_count }} application(s) found</p>
+            </div>
+            
+            <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                <!-- Search -->
+                <div class="relative flex-1 sm:flex-none">
+                    <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    <input type="text" id="searchInput" placeholder="Search applications..." 
+                           value="{{ search }}"
+                           class="pl-10 pr-4 py-2 border border-gray-300 rounded-xl w-full focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+                
+                <!-- Status Filter -->
+                <select id="statusFilter" 
+                        class="px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">All Status</option>
+                    <option value="pending" {% if status == 'pending' %}selected{% endif %}>Pending</option>
+                    <option value="approved" {% if status == 'approved' %}selected{% endif %}>Approved</option>
+                    <option value="rejected" {% if status == 'rejected' %}selected{% endif %}>Rejected</option>
+                    <option value="disbursed" {% if status == 'disbursed' %}selected{% endif %}>Disbursed</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Applications Table -->
+    <div class="card-glass rounded-2xl overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Member</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Loan Details</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for app in applications %}
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0">
+                                    <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                        <i class="fas fa-user text-blue-600"></i>
+                                    </div>
+                                </div>
+                                <div class="ml-4">
+                                    <div class="text-sm font-medium text-gray-900">
+                                        {{ app.members.full_name }}
+                                    </div>
+                                    <div class="text-sm text-gray-500">
+                                        {{ app.members.member_number }}
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm">
+                                <div class="font-medium text-gray-900">
+                                    UGX {{ "{:,.0f}".format(app.loan_amount|float) }}
+                                </div>
+                                <div class="text-gray-500">
+                                    {{ app.loan_products.name if app.loan_products else 'No Product' }}
+                                </div>
+                                <div class="text-xs text-gray-400">
+                                    {{ app.repayment_period_months }} months @ {{ app.interest_rate }}%
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium
+                                {% if app.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                {% elif app.status == 'approved' %}bg-blue-100 text-blue-800
+                                {% elif app.status == 'disbursed' %}bg-green-100 text-green-800
+                                {% else %}bg-red-100 text-red-800{% endif %}">
+                                {% if app.status == 'pending' %}
+                                <i class="fas fa-clock mr-1"></i>
+                                {% elif app.status == 'approved' %}
+                                <i class="fas fa-check-circle mr-1"></i>
+                                {% elif app.status == 'disbursed' %}
+                                <i class="fas fa-money-bill-wave mr-1"></i>
+                                {% else %}
+                                <i class="fas fa-times-circle mr-1"></i>
+                                {% endif %}
+                                {{ app.status|title }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-500">
+                            {{ app.created_at[:10] }}
+                        </td>
+                        <td class="px-6 py-4 text-sm font-medium">
+                            <div class="flex items-center space-x-2">
+                                <a href="{{ url_for('loans.view_application', application_id=app.id) }}" 
+                                   class="text-blue-600 hover:text-blue-900">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                {% if app.status == 'pending' %}
+                                <button onclick="approveApplication('{{ app.id }}')" 
+                                        class="text-green-600 hover:text-green-900">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                <button onclick="rejectApplication('{{ app.id }}')" 
+                                        class="text-red-600 hover:text-red-900">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                                {% elif app.status == 'approved' %}
+                                <button onclick="disburseApplication('{{ app.id }}')" 
+                                        class="text-purple-600 hover:text-purple-900">
+                                    <i class="fas fa-money-bill"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="px-6 py-12 text-center">
+                            <div class="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                                <i class="fas fa-file-alt text-gray-400 text-2xl"></i>
+                            </div>
+                            <h3 class="text-lg font-bold text-gray-700 mb-2">No Loan Applications</h3>
+                            <p class="text-gray-600">No loan applications found matching your criteria</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Approve Modal -->
+<div id="approveModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-2xl p-6 max-w-md w-full mx-4">
+        <h3 class="text-lg font-bold text-gray-800 mb-4">Approve Loan Application</h3>
+        <form id="approveForm">
+            <input type="hidden" id="approveAppId" name="application_id">
+            <div class="mb-4">
+                <label for="approveRemarks" class="block text-sm font-medium text-gray-700 mb-2">
+                    Remarks (Optional)
+                </label>
+                <textarea id="approveRemarks" name="remarks" rows="3"
+                          class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
+            </div>
+            <div class="flex justify-end space-x-3">
+                <button type="button" onclick="closeModal('approveModal')" 
+                        class="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50">
+                    Cancel
+                </button>
+                <button type="submit" 
+                        class="px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700">
+                    Approve Application
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Reject Modal -->
+<div id="rejectModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-2xl p-6 max-w-md w-full mx-4">
+        <h3 class="text-lg font-bold text-gray-800 mb-4">Reject Loan Application</h3>
+        <form id="rejectForm">
+            <input type="hidden" id="rejectAppId" name="application_id">
+            <div class="mb-4">
+                <label for="rejectRemarks" class="block text-sm font-medium text-gray-700 mb-2">
+                    Reason for Rejection *
+                </label>
+                <textarea id="rejectRemarks" name="remarks" rows="3" required
+                          class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
+            </div>
+            <div class="flex justify-end space-x-3">
+                <button type="button" onclick="closeModal('rejectModal')" 
+                        class="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50">
+                    Cancel
+                </button>
+                <button type="submit" 
+                        class="px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700">
+                    Reject Application
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Disburse Modal -->
+<div id="disburseModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-2xl p-6 max-w-md w-full mx-4">
+        <h3 class="text-lg font-bold text-gray-800 mb-4">Disburse Loan</h3>
+        <form id="disburseForm">
+            <input type="hidden" id="disburseAppId" name="application_id">
+            <div class="space-y-4">
+                <div>
+                    <label for="disbursementMethod" class="block text-sm font-medium text-gray-700 mb-2">
+                        Disbursement Method *
+                    </label>
+                    <select id="disbursementMethod" name="disbursement_method" required
+                            class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">Select Method</option>
+                        <option value="cash">Cash</option>
+                        <option value="mobile_money">Mobile Money</option>
+                        <option value="bank_transfer">Bank Transfer</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="referenceNumber" class="block text-sm font-medium text-gray-700 mb-2">
+                        Reference Number
+                    </label>
+                    <input type="text" id="referenceNumber" name="reference_number"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           placeholder="Transaction reference">
+                </div>
+                <div>
+                    <label for="disburseRemarks" class="block text-sm font-medium text-gray-700 mb-2">
+                        Remarks
+                    </label>
+                    <textarea id="disburseRemarks" name="remarks" rows="2"
+                              class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
+                </div>
+            </div>
+            <div class="flex justify-end space-x-3 mt-6">
+                <button type="button" onclick="closeModal('disburseModal')" 
+                        class="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50">
+                    Cancel
+                </button>
+                <button type="submit" 
+                        class="px-4 py-2 bg-purple-600 text-white rounded-xl hover:bg-purple-700">
+                    Disburse Loan
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Filter applications
+    document.getElementById('searchInput').addEventListener('keyup', function(e) {
+        if (e.key === 'Enter') {
+            const search = this.value;
+            const status = document.getElementById('statusFilter').value;
+            let url = '{{ url_for("loans.loan_applications") }}';
+            const params = new URLSearchParams();
+            
+            if (search) params.append('search', search);
+            if (status) params.append('status', status);
+            
+            if (params.toString()) {
+                url += '?' + params.toString();
+            }
+            
+            window.location.href = url;
+        }
+    });
+    
+    document.getElementById('statusFilter').addEventListener('change', function() {
+        const search = document.getElementById('searchInput').value;
+        const status = this.value;
+        let url = '{{ url_for("loans.loan_applications") }}';
+        const params = new URLSearchParams();
+        
+        if (search) params.append('search', search);
+        if (status) params.append('status', status);
+        
+        if (params.toString()) {
+            url += '?' + params.toString();
+        }
+        
+        window.location.href = url;
+    });
+    
+    // Modal functions
+    function openModal(modalId, appId) {
+        document.getElementById(modalId).classList.remove('hidden');
+        if (modalId === 'approveModal') {
+            document.getElementById('approveAppId').value = appId;
+        } else if (modalId === 'rejectModal') {
+            document.getElementById('rejectAppId').value = appId;
+        } else if (modalId === 'disburseModal') {
+            document.getElementById('disburseAppId').value = appId;
+        }
+    }
+    
+    function closeModal(modalId) {
+        document.getElementById(modalId).classList.add('hidden');
+    }
+    
+    // Application actions
+    function approveApplication(appId) {
+        openModal('approveModal', appId);
+    }
+    
+    function rejectApplication(appId) {
+        openModal('rejectModal', appId);
+    }
+    
+    function disburseApplication(appId) {
+        openModal('disburseModal', appId);
+    }
+    
+    // Form submissions
+    document.getElementById('approveForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const appId = document.getElementById('approveAppId').value;
+        const remarks = document.getElementById('approveRemarks').value;
+        
+        fetch(`/admin/loans/applications/approve/${appId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `remarks=${encodeURIComponent(remarks)}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                closeModal('approveModal');
+                showSuccessMessage('Application approved successfully');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Error approving application');
+        });
+    });
+    
+    document.getElementById('rejectForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const appId = document.getElementById('rejectAppId').value;
+        const remarks = document.getElementById('rejectRemarks').value;
+        
+        fetch(`/admin/loans/applications/reject/${appId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `remarks=${encodeURIComponent(remarks)}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                closeModal('rejectModal');
+                showSuccessMessage('Application rejected successfully');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Error rejecting application');
+        });
+    });
+    
+    document.getElementById('disburseForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const appId = document.getElementById('disburseAppId').value;
+        const formData = new FormData(this);
+        
+        fetch(`/admin/loans/applications/disburse/${appId}`, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                closeModal('disburseModal');
+                showSuccessMessage('Loan disbursed successfully');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Error disbursing loan');
+        });
+    });
+    
+    // Success message
+    function showSuccessMessage(message) {
+        const toast = document.createElement('div');
+        toast.className = 'fixed top-4 right-4 z-50 px-6 py-3 bg-green-50 text-green-700 rounded-xl shadow-lg border-l-4 border-green-500';
+        toast.innerHTML = `
+            <div class="flex items-center">
+                <i class="fas fa-check-circle mr-3 text-lg"></i>
+                <span>${message}</span>
+            </div>
+        `;
+        
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+</script>
+
+<style>
+    table {
+        min-width: 800px;
+    }
+    
+    @media (min-width: 768px) {
+        table {
+            min-width: 0;
+        }
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,278 @@
+{% extends "adminbase.html" %}
+
+{% block title %}Direct Loan - LUNSERK SACCO Admin{% endblock %}
+
+{% block breadcrumb %}Loans / Direct Loan{% endblock %}
+
+{% block page_title %}Direct Loan Issuance{% endblock %}
+
+{% block page_subtitle %}Issue loan directly to member without application{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="card-glass rounded-2xl p-6">
+        <form method="POST" id="directLoanForm" class="space-y-6">
+            <!-- Member Selection -->
+            <div>
+                <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Member Selection</h3>
+                
+                <div class="mb-4">
+                    <label for="memberSelect" class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-user text-blue-500 mr-1"></i> Select Member *
+                    </label>
+                    <select id="memberSelect" name="member_id" required
+                            class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                        <option value="">Choose a member...</option>
+                        {% for member in members %}
+                        <option value="{{ member.id }}">
+                            {{ member.full_name }} ({{ member.member_number }}) - {{ member.email }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- Selected Member Info -->
+                <div id="memberInfo" class="hidden p-4 bg-blue-50 rounded-xl">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
+                            <i class="fas fa-user text-blue-600"></i>
+                        </div>
+                        <div>
+                            <h4 id="memberName" class="font-bold text-gray-800"></h4>
+                            <p id="memberDetails" class="text-sm text-gray-600"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loan Details -->
+            <div>
+                <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Loan Details</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Loan Amount -->
+                    <div>
+                        <label for="loan_amount" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-money-bill-wave text-blue-500 mr-1"></i> Loan Amount (UGX) *
+                        </label>
+                        <input type="number" id="loan_amount" name="loan_amount" required step="1000"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                               placeholder="100000">
+                    </div>
+                    
+                    <!-- Interest Rate -->
+                    <div>
+                        <label for="interest_rate" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-percentage text-blue-500 mr-1"></i> Interest Rate (%) *
+                        </label>
+                        <select id="interest_rate" name="interest_rate" required
+                                class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                            <option value="">Select rate...</option>
+                            {% for product in products %}
+                            <option value="{{ product.interest_rate }}">{{ product.name }} - {{ product.interest_rate }}%</option>
+                            {% endfor %}
+                            <option value="12">Default (12%)</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Repayment Period -->
+                    <div>
+                        <label for="repayment_months" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-calendar-alt text-blue-500 mr-1"></i> Repayment Period (months) *
+                        </label>
+                        <select id="repayment_months" name="repayment_months" required
+                                class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                            <option value="3">3 months</option>
+                            <option value="6" selected>6 months</option>
+                            <option value="12">12 months</option>
+                            <option value="18">18 months</option>
+                            <option value="24">24 months</option>
+                            <option value="36">36 months</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Disbursement Method -->
+                    <div>
+                        <label for="disbursement_method" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-hand-holding-usd text-blue-500 mr-1"></i> Disbursement Method *
+                        </label>
+                        <select id="disbursement_method" name="disbursement_method" required
+                                class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                            <option value="">Select method...</option>
+                            <option value="cash">Cash</option>
+                            <option value="mobile_money">Mobile Money</option>
+                            <option value="bank_transfer">Bank Transfer</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Purpose -->
+                <div class="mt-4">
+                    <label for="purpose" class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-bullseye text-blue-500 mr-1"></i> Loan Purpose
+                    </label>
+                    <textarea id="purpose" name="purpose" rows="3"
+                              class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                              placeholder="Enter the purpose of this loan..."></textarea>
+                </div>
+                
+                <!-- Reference Number -->
+                <div class="mt-4">
+                    <label for="reference_number" class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-hashtag text-blue-500 mr-1"></i> Reference Number (Optional)
+                    </label>
+                    <input type="text" id="reference_number" name="reference_number"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                           placeholder="Transaction reference number">
+                </div>
+            </div>
+
+            <!-- Loan Summary -->
+            <div>
+                <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Loan Summary</h3>
+                
+                <div class="bg-gray-50 p-4 rounded-xl space-y-3">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Loan Amount:</span>
+                        <span id="summaryAmount" class="font-bold text-gray-800">UGX 0</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Interest Rate:</span>
+                        <span id="summaryRate" class="font-bold text-gray-800">0%</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Repayment Period:</span>
+                        <span id="summaryPeriod" class="font-bold text-gray-800">0 months</span>
+                    </div>
+                    <div class="flex justify-between border-t border-gray-300 pt-3">
+                        <span class="text-gray-600">Monthly Installment:</span>
+                        <span id="summaryInstallment" class="font-bold text-blue-600">UGX 0</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Total Repayable:</span>
+                        <span id="summaryTotal" class="font-bold text-green-600">UGX 0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="pt-6 border-t border-gray-200">
+                <div class="flex justify-between">
+                    <a href="{{ url_for('loans.loan_applications') }}" 
+                       class="px-6 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors">
+                        <i class="fas fa-arrow-left mr-2"></i> Cancel
+                    </a>
+                    
+                    <button type="submit" 
+                            class="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all hover-lift">
+                        <i class="fas fa-paper-plane mr-2"></i> Issue Loan
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Update member info
+    document.getElementById('memberSelect').addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        const memberInfo = document.getElementById('memberInfo');
+        
+        if (selectedOption.value) {
+            memberInfo.classList.remove('hidden');
+            document.getElementById('memberName').textContent = selectedOption.text.split('(')[0].trim();
+            document.getElementById('memberDetails').textContent = selectedOption.text;
+        } else {
+            memberInfo.classList.add('hidden');
+        }
+    });
+    
+    // Calculate loan summary
+    function calculateLoanSummary() {
+        const amount = parseFloat(document.getElementById('loan_amount').value) || 0;
+        const rate = parseFloat(document.getElementById('interest_rate').value) || 0;
+        const months = parseInt(document.getElementById('repayment_months').value) || 0;
+        
+        if (amount > 0 && rate > 0 && months > 0) {
+            const monthlyRate = rate / 100 / 12;
+            const monthlyPayment = amount * (monthlyRate * Math.pow(1 + monthlyRate, months)) / (Math.pow(1 + monthlyRate, months) - 1);
+            const totalRepayable = monthlyPayment * months;
+            
+            document.getElementById('summaryAmount').textContent = 'UGX ' + amount.toLocaleString();
+            document.getElementById('summaryRate').textContent = rate + '%';
+            document.getElementById('summaryPeriod').textContent = months + ' months';
+            document.getElementById('summaryInstallment').textContent = 'UGX ' + Math.round(monthlyPayment).toLocaleString();
+            document.getElementById('summaryTotal').textContent = 'UGX ' + Math.round(totalRepayable).toLocaleString();
+        } else {
+            document.getElementById('summaryAmount').textContent = 'UGX 0';
+            document.getElementById('summaryRate').textContent = '0%';
+            document.getElementById('summaryPeriod').textContent = '0 months';
+            document.getElementById('summaryInstallment').textContent = 'UGX 0';
+            document.getElementById('summaryTotal').textContent = 'UGX 0';
+        }
+    }
+    
+    // Update summary on input change
+    document.getElementById('loan_amount').addEventListener('input', calculateLoanSummary);
+    document.getElementById('interest_rate').addEventListener('change', calculateLoanSummary);
+    document.getElementById('repayment_months').addEventListener('change', calculateLoanSummary);
+    
+    // Initial calculation
+    calculateLoanSummary();
+    
+    // Form validation
+    document.getElementById('directLoanForm').addEventListener('submit', function(e) {
+        const amount = parseFloat(document.getElementById('loan_amount').value) || 0;
+        const rate = parseFloat(document.getElementById('interest_rate').value) || 0;
+        const months = parseInt(document.getElementById('repayment_months').value) || 0;
+        const method = document.getElementById('disbursement_method').value;
+        
+        if (amount <= 0) {
+            e.preventDefault();
+            alert('Please enter a valid loan amount');
+            document.getElementById('loan_amount').focus();
+            return false;
+        }
+        
+        if (rate <= 0) {
+            e.preventDefault();
+            alert('Please select an interest rate');
+            document.getElementById('interest_rate').focus();
+            return false;
+        }
+        
+        if (months <= 0) {
+            e.preventDefault();
+            alert('Please select a repayment period');
+            document.getElementById('repayment_months').focus();
+            return false;
+        }
+        
+        if (!method) {
+            e.preventDefault();
+            alert('Please select a disbursement method');
+            document.getElementById('disbursement_method').focus();
+            return false;
+        }
+        
+        // Confirm before submitting
+        if (!confirm('Are you sure you want to issue this direct loan?')) {
+            e.preventDefault();
+            return false;
+        }
+        
+        return true;
+    });
+</script>
+
+<style>
+    .hover-lift {
+        transition: transform 0.2s ease-in-out;
+    }
+    
+    .hover-lift:hover {
+        transform: translateY(-2px);
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+            @bottom-center {
+                content: "Page " counter(page) " of " counter(pages);
+                font-size: 10pt;
+                color: #666;
+            }
+        }
+        
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            font-size: 11pt;
+            line-height: 1.5;
+            color: #333;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #2563eb;
+            padding-bottom: 20px;
+        }
+        
+        .logo {
+            font-size: 24pt;
+            font-weight: bold;
+            color: #2563eb;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            font-size: 12pt;
+            color: #666;
+        }
+        
+        .member-info {
+            margin-bottom: 25px;
+            padding: 15px;
+            background-color: #f8fafc;
+            border-radius: 8px;
+            border-left: 4px solid #2563eb;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+            page-break-inside: avoid;
+        }
+        
+        .section-title {
+            font-size: 14pt;
+            font-weight: bold;
+            color: #1e40af;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .info-item {
+            margin-bottom: 8px;
+        }
+        
+        .info-label {
+            font-weight: bold;
+            color: #4b5563;
+        }
+        
+        .info-value {
+            color: #111827;
+        }
+        
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        
+        .table th {
+            background-color: #f1f5f9;
+            text-align: left;
+            padding: 10px;
+            border: 1px solid #d1d5db;
+            font-weight: bold;
+            color: #374151;
+        }
+        
+        .table td {
+            padding: 10px;
+            border: 1px solid #d1d5db;
+        }
+        
+        .table tr:nth-child(even) {
+            background-color: #f9fafb;
+        }
+        
+        .amount {
+            text-align: right;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .deposit {
+            color: #059669;
+        }
+        
+        .withdrawal {
+            color: #dc2626;
+        }
+        
+        .total-row {
+            font-weight: bold;
+            background-color: #e0f2fe !important;
+        }
+        
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+            text-align: center;
+            font-size: 9pt;
+            color: #6b7280;
+        }
+        
+        .watermark {
+            position: fixed;
+            bottom: 30%;
+            left: 25%;
+            opacity: 0.1;
+            font-size: 60pt;
+            color: #2563eb;
+            transform: rotate(-45deg);
+            z-index: -1;
+        }
+        
+        .page-break {
+            page-break-before: always;
+        }
+        
+        .summary-box {
+            background-color: #f0f9ff;
+            border: 1px solid #bae6fd;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .summary-title {
+            font-weight: bold;
+            color: #0369a1;
+            margin-bottom: 10px;
+        }
+        
+        .signature-section {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px dashed #d1d5db;
+        }
+        
+        .signature-line {
+            width: 200px;
+            border-bottom: 1px solid #4b5563;
+            margin-top: 50px;
+        }
+        
+        .print-date {
+            text-align: right;
+            font-size: 9pt;
+            color: #6b7280;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Watermark -->
+    <div class="watermark">LUNSERK SACCO</div>
+    
+    <!-- Header -->
+    <div class="header">
+        <div class="logo">LUNSERK SACCO</div>
+        <div class="subtitle">Account Statement</div>
+        <div class="print-date">Generated: {{ generated_date }}</div>
+    </div>
+    
+    <!-- Member Information -->
+    <div class="member-info">
+        <div class="info-grid">
+            <div class="info-item">
+                <span class="info-label">Member Name:</span>
+                <span class="info-value">{{ member.full_name }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Member Number:</span>
+                <span class="info-value">{{ member.member_number }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Statement Period:</span>
+                <span class="info-value">{{ start_date }} to {{ end_date }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Statement Type:</span>
+                <span class="info-value">{{ statement_type|title }}</span>
+            </div>
+        </div>
+    </div>
+    
+    {% if statement_type in ['combined', 'savings'] and savings_account %}
+    <!-- Savings Account Section -->
+    <div class="section">
+        <div class="section-title">Savings Account Statement</div>
+        
+        <div class="summary-box">
+            <div class="summary-title">Account Summary</div>
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">Account Number:</span>
+                    <span class="info-value">{{ savings_account.account_number }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Account Type:</span>
+                    <span class="info-value">{{ savings_account.account_type|default('Regular')|title }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Opening Balance:</span>
+                    <span class="info-value">UGX {{ "{:,.2f}".format(savings_account.current_balance|float) if savings_account.current_balance else '0.00' }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Interest Rate:</span>
+                    <span class="info-value">{{ savings_account.interest_rate|float if savings_account.interest_rate else '3.00' }}% p.a.</span>
+                </div>
+            </div>
+        </div>
+        
+        {% if savings_transactions %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Reference</th>
+                    <th>Description</th>
+                    <th>Type</th>
+                    <th>Amount</th>
+                    <th>Balance</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% set running_balance = savings_account.current_balance|float %}
+                {% for transaction in savings_transactions|sort(attribute='created_at', reverse=True) %}
+                <tr>
+                    <td>{{ transaction.created_at[:10] if transaction.created_at else '' }}</td>
+                    <td>{{ transaction.reference_number|default('') }}</td>
+                    <td>{{ transaction.description|default('Transaction') }}</td>
+                    <td>{{ transaction.transaction_type|title }}</td>
+                    <td class="amount {% if transaction.transaction_type == 'deposit' %}deposit{% else %}withdrawal{% endif %}">
+                        {% if transaction.transaction_type == 'deposit' %}+{% else %}-{% endif %}
+                        UGX {{ "{:,.2f}".format(transaction.amount|float) }}
+                    </td>
+                    <td class="amount">
+                        {% if transaction.transaction_type == 'deposit' %}
+                            {% set running_balance = running_balance - transaction.amount|float %}
+                        {% else %}
+                            {% set running_balance = running_balance + transaction.amount|float %}
+                        {% endif %}
+                        UGX {{ "{:,.2f}".format(running_balance) }}
+                    </td>
+                </tr>
+                {% endfor %}
+                <tr class="total-row">
+                    <td colspan="4"><strong>Total for Period</strong></td>
+                    <td class="amount">
+                        Deposits: UGX {{ "{:,.2f}".format(total_deposits|float) }}<br>
+                        Withdrawals: UGX {{ "{:,.2f}".format(total_withdrawals|float) }}
+                    </td>
+                    <td class="amount">
+                        <strong>Closing Balance:</strong><br>
+                        UGX {{ "{:,.2f}".format(savings_account.current_balance|float) }}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        {% else %}
+        <p>No savings transactions found for this period.</p>
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    {% if statement_type in ['combined', 'loan'] and loan_account %}
+    <!-- Loan Account Section -->
+    <div class="section {% if statement_type == 'combined' %}page-break{% endif %}">
+        <div class="section-title">Loan Account Statement</div>
+        
+        <div class="summary-box">
+            <div class="summary-title">Account Summary</div>
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">Account Number:</span>
+                    <span class="info-value">{{ loan_account.account_number }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Credit Limit:</span>
+                    <span class="info-value">UGX {{ "{:,.2f}".format(loan_account.credit_limit|float) if loan_account.credit_limit else '0.00' }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Current Balance:</span>
+                    <span class="info-value">UGX {{ "{:,.2f}".format(loan_account.current_balance|float) if loan_account.current_balance else '0.00' }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Available Limit:</span>
+                    <span class="info-value">UGX {{ "{:,.2f}".format(loan_account.available_limit|float) if loan_account.available_limit else '0.00' }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Interest Rate:</span>
+                    <span class="info-value">{{ loan_account.interest_rate|float if loan_account.interest_rate else '12.00' }}% p.a.</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Credit Score:</span>
+                    <span class="info-value">{{ loan_account.credit_score|default('700') }}</span>
+                </div>
+            </div>
+        </div>
+        
+        {% if loan_transactions %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Reference</th>
+                    <th>Description</th>
+                    <th>Type</th>
+                    <th>Amount</th>
+                    <th>Balance</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% set loan_balance = loan_account.current_balance|float %}
+                {% for transaction in loan_transactions|sort(attribute='created_at', reverse=True) %}
+                <tr>
+                    <td>{{ transaction.created_at[:10] if transaction.created_at else '' }}</td>
+                    <td>{{ transaction.reference_number|default('') }}</td>
+                    <td>{{ transaction.description|default('Transaction') }}</td>
+                    <td>{{ transaction.transaction_type|title }}</td>
+                    <td class="amount {% if transaction.transaction_type == 'repayment' %}deposit{% else %}withdrawal{% endif %}">
+                        {% if transaction.transaction_type == 'repayment' %}+{% else %}-{% endif %}
+                        UGX {{ "{:,.2f}".format(transaction.amount|float) }}
+                    </td>
+                    <td class="amount">
+                        {% if transaction.transaction_type == 'repayment' %}
+                            {% set loan_balance = loan_balance + transaction.amount|float %}
+                        {% else %}
+                            {% set loan_balance = loan_balance - transaction.amount|float %}
+                        {% endif %}
+                        UGX {{ "{:,.2f}".format(loan_balance) }}
+                    </td>
+                </tr>
+                {% endfor %}
+                <tr class="total-row">
+                    <td colspan="4"><strong>Total for Period</strong></td>
+                    <td class="amount">
+                        Repayments: UGX {{ "{:,.2f}".format(total_repayments|float) }}<br>
+                        Disbursements: UGX {{ "{:,.2f}".format(total_disbursements|float) }}
+                    </td>
+                    <td class="amount">
+                        <strong>Current Balance:</strong><br>
+                        UGX {{ "{:,.2f}".format(loan_account.current_balance|float) }}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        {% else %}
+        <p>No loan transactions found for this period.</p>
+        {% endif %}
+        
+        {% if repayments %}
+        <div class="section-title" style="margin-top: 30px;">Repayment Schedule</div>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Due Date</th>
+                    <th>Due Amount</th>
+                    <th>Paid Amount</th>
+                    <th>Balance</th>
+                    <th>Status</th>
+                    <th>Paid Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for repayment in repayments|sort(attribute='due_date') %}
+                <tr>
+                    <td>{{ repayment.installment_number }}</td>
+                    <td>{{ repayment.due_date }}</td>
+                    <td class="amount">UGX {{ "{:,.2f}".format(repayment.due_amount|float) }}</td>
+                    <td class="amount">UGX {{ "{:,.2f}".format(repayment.paid_amount|float) }}</td>
+                    <td class="amount">UGX {{ "{:,.2f}".format(repayment.due_amount|float - repayment.paid_amount|float) }}</td>
+                    <td>{{ repayment.status|title }}</td>
+                    <td>{{ repayment.paid_date if repayment.paid_date else 'Pending' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    <!-- Footer -->
+    <div class="footer">
+        <p>LUNSERK SACCO - Member Portal Statement</p>
+        <p>This is a computer-generated statement. No signature is required.</p>
+        <p>For inquiries, contact: support@lunserksacco.com | +256 XXX XXX XXX</p>
+        <p>Address: LUNSERK SACCO, Kampala, Uganda</p>
+    </div>
+    
+    <!-- Signature Section (for printed copies) -->
+    <div class="signature-section">
+        <p>Authorized Signatory:</p>
+        <div class="signature-line"></div>
+        <p style="margin-top: 5px; font-size: 9pt;">LUNSERK SACCO Management</p>
+    </div>
+</body>
+</html>

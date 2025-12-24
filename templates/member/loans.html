@@ -1,0 +1,725 @@
+{% extends "base.html" %}
+
+{% block title %}Loan Account - LUNSERK SACCO{% endblock %}
+
+{% block page_title %}Loan Account Management{% endblock %}
+
+{% block page_subtitle %}Track, manage, and repay your loans efficiently{% endblock %}
+
+{% block breadcrumb %}
+<nav class="flex" aria-label="Breadcrumb">
+    <ol class="inline-flex items-center space-x-1 md:space-x-3">
+        <li class="inline-flex items-center">
+            <a href="{{ url_for('member.dashboard') }}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+                <i class="fas fa-home mr-2"></i>
+                Dashboard
+            </a>
+        </li>
+        <li>
+            <div class="flex items-center">
+                <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                <span class="text-sm font-medium text-gray-500">Loans</span>
+            </div>
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Loan Summary Cards -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Main Account Card -->
+        <div class="lg:col-span-2 bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
+            <div class="bg-gradient-to-r from-blue-600 to-blue-700 p-6">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h3 class="text-lg font-semibold text-white">Loan Account Overview</h3>
+                        <p class="text-blue-100 text-sm mt-1">Manage your loan details and status</p>
+                    </div>
+                    <span class="px-4 py-1.5 bg-white/20 backdrop-blur-sm rounded-full text-xs font-medium text-white">
+                        {{ loan_account.account_number }}
+                    </span>
+                </div>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Balance Section -->
+                    <div class="space-y-6">
+                        <div>
+                            <p class="text-sm font-medium text-gray-500 mb-2">Current Balance</p>
+                            <div class="flex items-baseline">
+                                <span class="text-3xl font-bold text-gray-800">
+                                    UGX {{ "{:,.0f}".format(loan_account.current_balance|float) }}
+                                </span>
+                                <span class="ml-2 px-3 py-1 rounded-full text-xs font-medium 
+                                    {% if loan_account.loan_status == 'active' %}bg-green-100 text-green-800
+                                    {% elif loan_account.loan_status == 'pending' %}bg-yellow-100 text-yellow-800
+                                    {% else %}bg-red-100 text-red-800{% endif %}">
+                                    {{ loan_account.loan_status|upper }}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <p class="text-sm font-medium text-gray-500 mb-2">Available Credit Limit</p>
+                            <p class="text-2xl font-bold text-emerald-600">
+                                UGX {{ "{:,.0f}".format(loan_account.available_limit|float) }}
+                            </p>
+                            <p class="text-sm text-gray-500 mt-1">
+                                Total Limit: UGX {{ "{:,.0f}".format(loan_account.credit_limit|float) }}
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <!-- Details Section -->
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-sm font-medium text-gray-500">Interest Rate</p>
+                                <p class="text-lg font-semibold text-gray-800">{{ loan_account.interest_rate|float }}% p.a.</p>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-500">Credit Score</p>
+                                <div class="flex items-center">
+                                    <p class="text-lg font-semibold text-gray-800 mr-2">{{ loan_account.credit_score }}</p>
+                                    {% if loan_account.credit_score|int > 700 %}
+                                    <i class="fas fa-star text-yellow-400"></i>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <p class="text-sm font-medium text-gray-500">Last Updated</p>
+                            <p class="text-lg font-semibold text-gray-800">
+                                {% if loan_account.updated_at %}
+                                    {{ loan_account.updated_at[:10] }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quick Actions Card -->
+        <div class="bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl shadow-lg p-6 text-white">
+            <h3 class="text-xl font-bold mb-6">Quick Repayment</h3>
+            
+            <!-- Pay Balance Form -->
+            <form method="POST" action="{{ url_for('member.pay_total_balance') }}" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-emerald-100 mb-2">
+                        Enter Amount (UGX)
+                    </label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-emerald-100 font-bold">UGX</span>
+                        <input type="number" 
+                               name="amount" 
+                               id="balanceAmount"
+                               min="1000"
+                               max="{{ loan_account.current_balance|float }}"
+                               step="1000"
+                               required
+                               class="w-full pl-14 pr-4 py-3 bg-white/10 backdrop-blur-sm border border-emerald-300/30 rounded-lg focus:ring-2 focus:ring-white focus:border-white text-white placeholder-emerald-200"
+                               placeholder="Enter amount"
+                               value="{{ loan_account.current_balance|float|int if loan_account.current_balance|float > 1000 else '' }}">
+                        <div class="absolute right-3 top-1/2 transform -translate-y-1/2">
+                            <button type="button" 
+                                    onclick="document.getElementById('balanceAmount').value = '{{ loan_account.current_balance|float|int }}'"
+                                    class="text-xs bg-white/20 hover:bg-white/30 px-2 py-1 rounded transition-colors">
+                                Full
+                            </button>
+                        </div>
+                    </div>
+                    <p class="text-xs text-emerald-100 mt-2">
+                        Balance: UGX {{ "{:,.0f}".format(loan_account.current_balance|float) }}
+                    </p>
+                </div>
+                
+                <button type="submit" 
+                        class="w-full bg-white text-emerald-600 font-semibold py-3 px-4 rounded-lg hover:bg-gray-50 transition-all duration-300 flex items-center justify-center shadow-lg hover:shadow-xl">
+                    <i class="fas fa-credit-card mr-3"></i>
+                    Pay via PesaPal
+                </button>
+            </form>
+            
+            <!-- Quick Amount Buttons -->
+            <div class="mt-6 pt-6 border-t border-emerald-400/30">
+                <p class="text-sm font-medium text-emerald-100 mb-3">Quick Amounts</p>
+                <div class="grid grid-cols-2 gap-3">
+                    {% set quick_amounts = [50000, 100000, 200000, 500000] %}
+                    {% for amount in quick_amounts %}
+                        {% if amount <= loan_account.current_balance|float %}
+                        <button type="button" 
+                                onclick="document.getElementById('balanceAmount').value = '{{ amount }}'"
+                                class="py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-medium transition-colors">
+                            UGX {{ "{:,.0f}".format(amount) }}
+                        </button>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Repayment Schedule Section -->
+    <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
+        <div class="px-6 py-5 border-b border-gray-200">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-800">Repayment Schedule</h3>
+                    <p class="text-sm text-gray-600 mt-1">{{ repayments|length }} Installments</p>
+                </div>
+                <div class="mt-3 sm:mt-0">
+                    <div class="flex items-center space-x-4 text-sm">
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+                            <span class="text-gray-600">Paid</span>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 rounded-full bg-yellow-500 mr-2"></div>
+                            <span class="text-gray-600">Partial</span>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
+                            <span class="text-gray-600">Pending</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">#</th>
+                        <th class="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Due Date</th>
+                        <th class="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Due Amount</th>
+                        <th class="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Paid</th>
+                        <th class="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Balance</th>
+                        <th class="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                        <th class="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% if repayments|length > 0 %}
+                        {% for repayment in repayments %}
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="py-4 px-6">
+                                <div class="flex items-center">
+                                    <div class="text-sm font-medium text-gray-900">{{ repayment.installment_number }}</div>
+                                </div>
+                            </td>
+                            <td class="py-4 px-6">
+                                <div class="text-sm text-gray-900 font-medium">{{ repayment.due_date }}</div>
+                                {% if repayment.loan_applications and repayment.loan_applications.purpose %}
+                                <div class="text-xs text-gray-500 mt-1">{{ repayment.loan_applications.purpose|truncate(30) }}</div>
+                                {% endif %}
+                            </td>
+                            <td class="py-4 px-6">
+                                <div class="text-sm font-semibold text-gray-900">
+                                    UGX {{ "{:,.0f}".format(repayment.due_amount|float) }}
+                                </div>
+                            </td>
+                            <td class="py-4 px-6">
+                                <div class="text-sm font-semibold text-green-600">
+                                    UGX {{ "{:,.0f}".format(repayment.paid_amount|float) }}
+                                </div>
+                            </td>
+                            <td class="py-4 px-6">
+                                {% set balance = repayment.due_amount|float - repayment.paid_amount|float %}
+                                <div class="text-sm font-semibold {% if balance > 0 %}text-red-600{% else %}text-green-600{% endif %}">
+                                    UGX {{ "{:,.0f}".format(balance) }}
+                                </div>
+                            </td>
+                            <td class="py-4 px-6">
+                                <div class="flex flex-col gap-2">
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium 
+                                        {% if repayment.status == 'paid' %}bg-green-100 text-green-800
+                                        {% elif repayment.status == 'partial' %}bg-yellow-100 text-yellow-800
+                                        {% elif repayment.status == 'pending' %}bg-gray-100 text-gray-800
+                                        {% else %}bg-red-100 text-red-800{% endif %}">
+                                        {{ repayment.status|title }}
+                                    </span>
+                                    {% if repayment.late_days and repayment.late_days > 0 %}
+                                    <span class="text-xs text-red-600 font-medium">
+                                        <i class="fas fa-clock mr-1"></i>{{ repayment.late_days }} days late
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="py-4 px-6">
+                                {% set balance = repayment.due_amount|float - repayment.paid_amount|float %}
+                                {% if balance > 0 %}
+                                <div class="flex space-x-2">
+                                    <form method="POST" action="{{ url_for('member.pay_repayment') }}" class="inline">
+                                        <input type="hidden" name="repayment_id" value="{{ repayment.id }}">
+                                        <button type="submit" 
+                                                class="inline-flex items-center px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded-lg transition-colors">
+                                            <i class="fas fa-check-circle mr-1.5"></i>
+                                            Full
+                                        </button>
+                                    </form>
+                                    <button type="button" 
+                                            onclick="showPartialPayment('{{ repayment.id }}', {{ balance }})"
+                                            class="inline-flex items-center px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors">
+                                        <i class="fas fa-percentage mr-1.5"></i>
+                                        Partial
+                                    </button>
+                                </div>
+                                {% else %}
+                                <span class="inline-flex items-center text-xs text-gray-500">
+                                    <i class="fas fa-check-circle mr-1.5"></i>
+                                    Completed
+                                </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="7" class="py-12 text-center">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                                        <i class="fas fa-calendar-alt text-2xl text-gray-400"></i>
+                                    </div>
+                                    <h4 class="text-lg font-medium text-gray-700 mb-2">No repayment schedule</h4>
+                                    <p class="text-gray-500 max-w-md">
+                                        {% if applications|selectattr('status', 'equalto', 'approved')|list|length > 0 %}
+                                        Your approved loans will generate a repayment schedule automatically.
+                                        {% else %}
+                                        Apply for a loan to get started with repayment schedules.
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Loan Applications Section -->
+    <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
+        <div class="px-6 py-5 border-b border-gray-200">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-800">Loan Applications</h3>
+                    <p class="text-sm text-gray-600 mt-1">Track and manage your loan requests</p>
+                </div>
+                <button type="button" 
+                        onclick="toggleLoanForm()"
+                        class="mt-4 sm:mt-0 inline-flex items-center px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-300 shadow-sm hover:shadow">
+                    <i class="fas fa-plus mr-2.5"></i>
+                    Apply for New Loan
+                </button>
+            </div>
+        </div>
+        
+        <!-- Loan Application Form -->
+        <div id="loanApplicationForm" class="hidden px-6 py-8 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200">
+            <div class="max-w-4xl mx-auto">
+                <div class="flex items-center justify-between mb-6">
+                    <h4 class="text-lg font-bold text-gray-800">New Loan Application Form</h4>
+                    <button type="button" 
+                            onclick="toggleLoanForm()"
+                            class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <form method="POST" action="{{ url_for('member.apply_loan') }}" class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Loan Product
+                            </label>
+                            <select name="loan_product_id" required
+                                    class="w-full px-4 py-3.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+                                <option value="" disabled selected>Select loan product</option>
+                                {% for product in products %}
+                                <option value="{{ product.id }}">
+                                    {{ product.name }} • {{ product.interest_rate }}% interest
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Loan Amount (UGX)
+                            </label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-bold">UGX</span>
+                                <input type="number" 
+                                       name="loan_amount" 
+                                       id="loanAmount"
+                                       required
+                                       min="10000"
+                                       step="1000"
+                                       class="w-full pl-14 pr-4 py-3.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                                       placeholder="Enter amount">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Repayment Period (Months)
+                            </label>
+                            <div class="relative">
+                                <input type="number" 
+                                       name="repayment_period" 
+                                       required
+                                       min="1"
+                                       max="60"
+                                       value="12"
+                                       class="w-full px-4 py-3.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+                                <span class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">months</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Purpose Category
+                            </label>
+                            <select class="w-full px-4 py-3.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+                                <option value="" disabled selected>Select category</option>
+                                <option value="business">Business Investment</option>
+                                <option value="education">Education</option>
+                                <option value="medical">Medical Expenses</option>
+                                <option value="home">Home Improvement</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            Detailed Purpose Description
+                        </label>
+                        <textarea name="purpose" 
+                                  rows="3"
+                                  required
+                                  class="w-full px-4 py-3.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                                  placeholder="Please describe in detail how you intend to use this loan..."></textarea>
+                    </div>
+                    
+                    <div class="flex justify-end space-x-4 pt-4">
+                        <button type="button" 
+                                onclick="toggleLoanForm()"
+                                class="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors">
+                            Cancel Application
+                        </button>
+                        <button type="submit" 
+                                class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium rounded-lg transition-all duration-300 shadow-sm hover:shadow">
+                            <i class="fas fa-paper-plane mr-2"></i>
+                            Submit Application
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Applications List -->
+        <div class="divide-y divide-gray-200">
+            {% if applications|length > 0 %}
+                {% for application in applications %}
+                <div class="p-6 hover:bg-gray-50 transition-colors">
+                    <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-start justify-between">
+                                <div>
+                                    <h4 class="text-lg font-bold text-gray-800">
+                                        UGX {{ "{:,.0f}".format(application.loan_amount|float) }}
+                                    </h4>
+                                    {% if application.loan_products %}
+                                    <p class="text-sm text-gray-600 mt-1">
+                                        <i class="fas fa-tag mr-1.5"></i>{{ application.loan_products.name }}
+                                    </p>
+                                    {% endif %}
+                                    <p class="text-gray-700 mt-3">{{ application.purpose }}</p>
+                                    
+                                    <div class="flex flex-wrap gap-4 mt-4 text-sm text-gray-600">
+                                        <span class="flex items-center">
+                                            <i class="fas fa-calendar-alt mr-2"></i>
+                                            {{ application.created_at[:10] }}
+                                        </span>
+                                        <span class="flex items-center">
+                                            <i class="fas fa-clock mr-2"></i>
+                                            {{ application.repayment_period_months }} months
+                                        </span>
+                                        <span class="flex items-center">
+                                            <i class="fas fa-percentage mr-2"></i>
+                                            {{ application.interest_rate|float }}% interest
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                <div class="ml-4">
+                                    <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium
+                                        {% if application.status == 'approved' %}bg-green-100 text-green-800
+                                        {% elif application.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                        {% elif application.status == 'rejected' %}bg-red-100 text-red-800
+                                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                        <i class="fas fa-circle text-xs mr-2"></i>
+                                        {{ application.status|title }}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            {% if application.monthly_installment %}
+                            <div class="mt-6 pt-6 border-t border-gray-200">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                                    <div class="text-center p-4 bg-blue-50 rounded-lg">
+                                        <p class="text-xs font-medium text-blue-600 uppercase tracking-wider">Monthly</p>
+                                        <p class="text-lg font-bold text-gray-800 mt-1">
+                                            UGX {{ "{:,.0f}".format(application.monthly_installment|float) }}
+                                        </p>
+                                    </div>
+                                    <div class="text-center p-4 bg-emerald-50 rounded-lg">
+                                        <p class="text-xs font-medium text-emerald-600 uppercase tracking-wider">Total Payable</p>
+                                        <p class="text-lg font-bold text-gray-800 mt-1">
+                                            UGX {{ "{:,.0f}".format(application.total_repayable|float) }}
+                                        </p>
+                                    </div>
+                                    <div class="text-center p-4 bg-purple-50 rounded-lg">
+                                        <p class="text-xs font-medium text-purple-600 uppercase tracking-wider">Account</p>
+                                        <p class="text-lg font-bold text-gray-800 mt-1">{{ application.account_number }}</p>
+                                    </div>
+                                    <div class="text-center p-4 bg-amber-50 rounded-lg">
+                                        <p class="text-xs font-medium text-amber-600 uppercase tracking-wider">Net Amount</p>
+                                        <p class="text-lg font-bold text-gray-800 mt-1">
+                                            UGX {{ "{:,.0f}".format(application.net_disbursement|float) }}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            {% if application.remarks %}
+                            <div class="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                <p class="text-sm text-gray-600">
+                                    <span class="font-semibold">Remarks:</span> {{ application.remarks }}
+                                </p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="p-12 text-center">
+                    <div class="max-w-md mx-auto">
+                        <div class="w-20 h-20 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-6">
+                            <i class="fas fa-file-invoice-dollar text-3xl text-gray-400"></i>
+                        </div>
+                        <h4 class="text-xl font-bold text-gray-700 mb-3">No Loan Applications</h4>
+                        <p class="text-gray-600 mb-8">
+                            You haven't applied for any loans yet. Start your first application to access funds for your needs.
+                        </p>
+                        <button type="button" 
+                                onclick="toggleLoanForm()"
+                                class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-300 shadow-sm hover:shadow">
+                            <i class="fas fa-plus mr-3"></i>
+                            Start First Application
+                        </button>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Partial Payment Modal -->
+<div id="partialPaymentModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 hidden transition-opacity duration-300">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 transform transition-all duration-300 scale-95">
+        <div class="p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-bold text-gray-800">Partial Payment</h3>
+                <button type="button" 
+                        onclick="closePartialModal()"
+                        class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <form id="partialPaymentForm" method="POST" action="{{ url_for('member.pay_repayment') }}" class="space-y-6">
+                <input type="hidden" id="partialRepaymentId" name="repayment_id">
+                
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-3">
+                        Enter Payment Amount (UGX)
+                    </label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-bold">UGX</span>
+                        <input type="number" 
+                               id="partialAmount"
+                               name="custom_amount"
+                               min="1000"
+                               step="1000"
+                               required
+                               class="w-full pl-14 pr-4 py-3.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
+                               placeholder="Enter amount">
+                    </div>
+                    <p id="maxAmountInfo" class="text-xs text-gray-500 mt-2"></p>
+                    
+                    <!-- Quick Amount Suggestions -->
+                    <div class="mt-4">
+                        <p class="text-xs font-medium text-gray-500 mb-2">Quick select:</p>
+                        <div class="grid grid-cols-2 gap-2">
+                            {% set partial_amounts = [10000, 25000, 50000, 100000] %}
+                            {% for amount in partial_amounts %}
+                            <button type="button" 
+                                    onclick="document.getElementById('partialAmount').value = '{{ amount }}'"
+                                    class="py-2 text-sm font-medium bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
+                                UGX {{ "{:,.0f}".format(amount) }}
+                            </button>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex space-x-4 pt-4">
+                    <button type="button" 
+                            onclick="closePartialModal()"
+                            class="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit" 
+                            class="flex-1 px-4 py-3 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-medium rounded-lg transition-all duration-300 shadow-sm hover:shadow">
+                        <i class="fas fa-credit-card mr-2"></i>
+                        Pay Now
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Toggle loan application form
+    function toggleLoanForm() {
+        const form = document.getElementById('loanApplicationForm');
+        form.classList.toggle('hidden');
+        form.classList.toggle('animate-slideDown');
+    }
+
+    // Show partial payment modal
+    function showPartialPayment(repaymentId, maxAmount) {
+        const modal = document.getElementById('partialPaymentModal');
+        const amountInput = document.getElementById('partialAmount');
+        const maxInfo = document.getElementById('maxAmountInfo');
+        
+        // Set values
+        document.getElementById('partialRepaymentId').value = repaymentId;
+        amountInput.max = maxAmount;
+        amountInput.value = maxAmount;
+        maxInfo.textContent = `Maximum payable: UGX ${maxAmount.toLocaleString('en-US')}`;
+        
+        // Show modal with animation
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            modal.querySelector('.transform').classList.remove('scale-95');
+            modal.querySelector('.transform').classList.add('scale-100');
+        }, 10);
+    }
+
+    // Close partial payment modal
+    function closePartialModal() {
+        const modal = document.getElementById('partialPaymentModal');
+        modal.querySelector('.transform').classList.remove('scale-100');
+        modal.querySelector('.transform').classList.add('scale-95');
+        
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 300);
+    }
+
+    // Close modal when clicking outside
+    document.getElementById('partialPaymentModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closePartialModal();
+        }
+    });
+
+    // Fix for the input issue - Simplified formatting
+    function setupAmountInput(inputId) {
+        const input = document.getElementById(inputId);
+        if (!input) return;
+
+        // Remove problematic input formatting that limited digits
+        // Only keep basic validation
+        input.addEventListener('blur', function(e) {
+            let value = parseFloat(e.target.value.replace(/,/g, ''));
+            if (!isNaN(value)) {
+                // Ensure it's within min/max bounds
+                const min = parseFloat(e.target.min) || 0;
+                const max = parseFloat(e.target.max) || Infinity;
+                
+                if (value < min) value = min;
+                if (value > max) value = max;
+                
+                // Update value without formatting
+                e.target.value = value;
+            }
+        });
+
+        // Allow any number input without formatting interference
+        input.addEventListener('input', function(e) {
+            // Remove any non-digit characters except decimal point
+            let value = e.target.value.replace(/[^\d.]/g, '');
+            
+            // Remove extra decimal points
+            const parts = value.split('.');
+            if (parts.length > 2) {
+                value = parts[0] + '.' + parts.slice(1).join('');
+            }
+            
+            // Update the input value
+            e.target.value = value;
+        });
+    }
+
+    // Initialize amount inputs
+    document.addEventListener('DOMContentLoaded', function() {
+        setupAmountInput('balanceAmount');
+        setupAmountInput('partialAmount');
+        setupAmountInput('loanAmount');
+        
+        // Also add to any other amount inputs that might be added dynamically
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.type === 'childList') {
+                    ['balanceAmount', 'partialAmount', 'loanAmount'].forEach(setupAmountInput);
+                }
+            });
+        });
+        
+        observer.observe(document.body, { childList: true, subtree: true });
+    });
+
+    // Add CSS animation for form slide down
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .animate-slideDown {
+            animation: slideDown 0.3s ease-out;
+        }
+    `;
+    document.head.appendChild(style);
+</script>
+{% endblock %}

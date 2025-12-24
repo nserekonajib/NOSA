@@ -1,0 +1,413 @@
+{% extends "adminbase.html" %}
+
+{% block title %}Account Details - LUNSERK SACCO Admin{% endblock %}
+
+{% block breadcrumb %}Loans / Accounts / Details{% endblock %}
+
+{% block page_title %}Loan Account Details{% endblock %}
+
+{% block page_subtitle %}{{ account.account_number }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Account Header -->
+    <div class="card-glass rounded-2xl p-6">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+                <div class="flex items-center gap-3 mb-2">
+                    <h2 class="text-xl font-bold text-gray-800">Loan Account</h2>
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
+                        {% if account.status == 'active' %}bg-green-100 text-green-800
+                        {% elif account.status == 'suspended' %}bg-yellow-100 text-yellow-800
+                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                        {% if account.status == 'active' %}
+                        <i class="fas fa-check-circle mr-1"></i>
+                        {% elif account.status == 'suspended' %}
+                        <i class="fas fa-pause-circle mr-1"></i>
+                        {% else %}
+                        <i class="fas fa-times-circle mr-1"></i>
+                        {% endif %}
+                        {{ account.status|title }}
+                    </span>
+                </div>
+                <p class="text-gray-600">{{ account.members.full_name }} • {{ account.members.member_number }}</p>
+            </div>
+            
+            <div class="flex gap-3">
+                <button onclick="updateCreditLimit('{{ account.id }}', '{{ account.credit_limit }}')" 
+                        class="px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700">
+                    <i class="fas fa-edit mr-2"></i> Update Limit
+                </button>
+                <a href="{{ url_for('loans.loan_accounts') }}" 
+                   class="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50">
+                    <i class="fas fa-arrow-left mr-2"></i> Back
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Left Column -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Account Summary -->
+            <div class="card-glass rounded-2xl p-6">
+                <h3 class="text-lg font-bold text-gray-800 mb-4">Account Summary</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-blue-50 p-4 rounded-xl">
+                        <p class="text-sm text-gray-600">Current Balance</p>
+                        <p class="text-2xl font-bold text-gray-800">UGX {{ "{:,.0f}".format(account.current_balance|float) }}</p>
+                    </div>
+                    <div class="bg-green-50 p-4 rounded-xl">
+                        <p class="text-sm text-gray-600">Available Limit</p>
+                        <p class="text-2xl font-bold text-gray-800">UGX {{ "{:,.0f}".format(account.available_limit|float) }}</p>
+                    </div>
+                    <div class="bg-purple-50 p-4 rounded-xl">
+                        <p class="text-sm text-gray-600">Credit Limit</p>
+                        <p class="text-2xl font-bold text-gray-800">UGX {{ "{:,.0f}".format(account.credit_limit|float) }}</p>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <div class="bg-gray-50 p-4 rounded-xl">
+                        <p class="text-sm text-gray-600">Interest Rate</p>
+                        <p class="text-lg font-bold text-gray-800">{{ account.interest_rate }}%</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-xl">
+                        <p class="text-sm text-gray-600">Credit Score</p>
+                        <p class="text-lg font-bold text-gray-800">{{ account.credit_score }}</p>
+                    </div>
+                </div>
+                
+                <div class="mt-6 pt-6 border-t border-gray-200">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-sm text-gray-600">Account Opened</p>
+                            <p class="font-medium text-gray-800">{{ account.opened_at[:10] }}</p>
+                        </div>
+                        {% if account.closed_at %}
+                        <div>
+                            <p class="text-sm text-gray-600">Account Closed</p>
+                            <p class="font-medium text-gray-800">{{ account.closed_at[:10] }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pending Repayments -->
+            {% if pending_repayments %}
+            <div class="card-glass rounded-2xl p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold text-gray-800">Pending Repayments</h3>
+                    <span class="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm">
+                        Total: UGX {{ "{:,.0f}".format(total_pending) }}
+                    </span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">#</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Due Date</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Loan Account</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            {% for repayment in pending_repayments %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-3 text-sm font-medium text-gray-900">
+                                    {{ repayment.installment_number }}
+                                </td>
+                                <td class="px-4 py-3 text-sm text-gray-500">
+                                    {{ repayment.due_date }}
+                                </td>
+                                <td class="px-4 py-3 text-sm font-bold text-gray-900">
+                                    UGX {{ "{:,.0f}".format(repayment.due_amount|float) }}
+                                </td>
+                                <td class="px-4 py-3 text-sm text-gray-500">
+                                    {{ repayment.loan_applications.account_number if repayment.loan_applications else 'N/A' }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Transaction History -->
+            {% if transactions %}
+            <div class="card-glass rounded-2xl p-6">
+                <h3 class="text-lg font-bold text-gray-800 mb-4">Recent Transactions</h3>
+                <div class="space-y-3">
+                    {% for transaction in transactions %}
+                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="text-sm font-medium text-gray-900">{{ transaction.transaction_type|replace('_', ' ')|title }}</span>
+                                {% if transaction.reference_number %}
+                                <span class="text-xs text-gray-500">({{ transaction.reference_number }})</span>
+                                {% endif %}
+                            </div>
+                            <p class="text-xs text-gray-600">{{ transaction.description }}</p>
+                            <p class="text-xs text-gray-500 mt-1">{{ transaction.created_at[:19] }}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-lg font-bold {% if transaction.transaction_type == 'repayment' %}text-green-600{% else %}text-blue-600{% endif %}">
+                                UGX {{ "{:,.0f}".format(transaction.amount|float) }}
+                            </p>
+                            <p class="text-xs text-gray-600">{{ transaction.payment_method|replace('_', ' ')|title if transaction.payment_method else 'N/A' }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Right Column -->
+        <div class="space-y-6">
+            <!-- Member Information -->
+            <div class="card-glass rounded-2xl p-6">
+                <h3 class="text-lg font-bold text-gray-800 mb-4">Member Information</h3>
+                <div class="space-y-3">
+                    <div>
+                        <p class="text-sm text-gray-600">Full Name</p>
+                        <p class="font-medium text-gray-800">{{ account.members.full_name }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">Member Number</p>
+                        <p class="font-medium text-gray-800">{{ account.members.member_number }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">Email</p>
+                        <p class="font-medium text-gray-800">{{ account.members.email }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">Phone</p>
+                        <p class="font-medium text-gray-800">{{ account.members.phone_number }}</p>
+                    </div>
+                    <div class="pt-4 border-t border-gray-200">
+                        <a href="{{ url_for('members.member_details', member_id=account.member_id) }}" 
+                           class="inline-flex items-center text-sm text-blue-600 hover:text-blue-800">
+                            <i class="fas fa-external-link-alt mr-2"></i>
+                            View Full Profile
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loan Applications -->
+            {% if applications %}
+            <div class="card-glass rounded-2xl p-6">
+                <h3 class="text-lg font-bold text-gray-800 mb-4">Loan Applications</h3>
+                <div class="space-y-3">
+                    {% for app in applications %}
+                    <div class="p-3 bg-gray-50 rounded-lg">
+                        <div class="flex justify-between items-start mb-1">
+                            <span class="text-sm font-medium text-gray-900">{{ app.account_number }}</span>
+                            <span class="text-xs px-2 py-1 rounded-full 
+                                {% if app.status == 'disbursed' %}bg-green-100 text-green-800
+                                {% elif app.status == 'approved' %}bg-blue-100 text-blue-800
+                                {% elif app.status == 'rejected' %}bg-red-100 text-red-800
+                                {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                {{ app.status|title }}
+                            </span>
+                        </div>
+                        <p class="text-xs text-gray-600">UGX {{ "{:,.0f}".format(app.loan_amount|float) }}</p>
+                        <p class="text-xs text-gray-500 mt-1">{{ app.created_at[:10] }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Account Actions -->
+            <div class="card-glass rounded-2xl p-6">
+                <h3 class="text-lg font-bold text-gray-800 mb-4">Account Actions</h3>
+                <div class="space-y-2">
+                    <a href="{{ url_for('loans.add_repayment') }}?member_id={{ account.member_id }}" 
+                       class="block w-full text-left px-4 py-3 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-colors">
+                        <i class="fas fa-money-bill mr-2"></i> Record Repayment
+                    </a>
+                    <a href="{{ url_for('loans.direct_loan') }}?member_id={{ account.member_id }}" 
+                       class="block w-full text-left px-4 py-3 bg-green-50 text-green-600 rounded-xl hover:bg-green-100 transition-colors">
+                        <i class="fas fa-hand-holding-usd mr-2"></i> Issue Direct Loan
+                    </a>
+                    {% if account.status != 'suspended' %}
+                    <button onclick="updateAccountStatus('{{ account.id }}', 'suspended')" 
+                            class="block w-full text-left px-4 py-3 bg-yellow-50 text-yellow-600 rounded-xl hover:bg-yellow-100 transition-colors">
+                        <i class="fas fa-pause-circle mr-2"></i> Suspend Account
+                    </button>
+                    {% endif %}
+                    {% if account.status != 'active' %}
+                    <button onclick="updateAccountStatus('{{ account.id }}', 'active')" 
+                            class="block w-full text-left px-4 py-3 bg-green-50 text-green-600 rounded-xl hover:bg-green-100 transition-colors">
+                        <i class="fas fa-play-circle mr-2"></i> Activate Account
+                    </button>
+                    {% endif %}
+                    {% if account.status != 'closed' and account.current_balance|float == 0 %}
+                    <button onclick="updateAccountStatus('{{ account.id }}', 'closed')" 
+                            class="block w-full text-left px-4 py-3 bg-gray-50 text-gray-600 rounded-xl hover:bg-gray-100 transition-colors">
+                        <i class="fas fa-times-circle mr-2"></i> Close Account
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Update Credit Limit Modal -->
+<div id="creditLimitModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-2xl p-6 max-w-md w-full mx-4">
+        <h3 class="text-lg font-bold text-gray-800 mb-4">Update Credit Limit</h3>
+        <form id="creditLimitForm">
+            <input type="hidden" id="accountId" name="account_id">
+            <div class="mb-4">
+                <label for="credit_limit" class="block text-sm font-medium text-gray-700 mb-2">
+                    New Credit Limit (UGX) *
+                </label>
+                <input type="number" id="credit_limit" name="credit_limit" required step="1000"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                       placeholder="Enter new credit limit">
+            </div>
+            <div class="flex justify-end space-x-3">
+                <button type="button" onclick="closeModal('creditLimitModal')" 
+                        class="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50">
+                    Cancel
+                </button>
+                <button type="submit" 
+                        class="px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700">
+                    Update Limit
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Update Status Modal -->
+<div id="statusModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-2xl p-6 max-w-md w-full mx-4">
+        <h3 class="text-lg font-bold text-gray-800 mb-4" id="statusModalTitle">Update Account Status</h3>
+        <form id="statusForm">
+            <input type="hidden" id="statusAccountId" name="account_id">
+            <input type="hidden" id="newStatus" name="status">
+            <p class="text-gray-600 mb-6" id="statusModalMessage">Are you sure you want to update the account status?</p>
+            <div class="flex justify-end space-x-3">
+                <button type="button" onclick="closeModal('statusModal')" 
+                        class="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50">
+                    Cancel
+                </button>
+                <button type="submit" id="statusSubmitBtn"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700">
+                    Update Status
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Update credit limit
+    function updateCreditLimit(accountId, currentLimit) {
+        document.getElementById('accountId').value = accountId;
+        document.getElementById('credit_limit').value = parseFloat(currentLimit);
+        document.getElementById('creditLimitModal').classList.remove('hidden');
+    }
+    
+    // Update account status
+    function updateAccountStatus(accountId, status) {
+        document.getElementById('statusAccountId').value = accountId;
+        document.getElementById('newStatus').value = status;
+        
+        const statusText = status.charAt(0).toUpperCase() + status.slice(1);
+        document.getElementById('statusModalTitle').textContent = `${statusText} Account`;
+        document.getElementById('statusModalMessage').textContent = `Are you sure you want to ${status} this account?`;
+        document.getElementById('statusSubmitBtn').textContent = `${statusText} Account`;
+        
+        const btn = document.getElementById('statusSubmitBtn');
+        btn.className = 'px-4 py-2 text-white rounded-xl hover:opacity-90 ';
+        if (status === 'active') btn.classList.add('bg-green-600');
+        else if (status === 'suspended') btn.classList.add('bg-yellow-600');
+        else btn.classList.add('bg-gray-600');
+        
+        document.getElementById('statusModal').classList.remove('hidden');
+    }
+    
+    function closeModal(modalId) {
+        document.getElementById(modalId).classList.add('hidden');
+    }
+    
+    // Form submissions
+    document.getElementById('creditLimitForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const accountId = document.getElementById('accountId').value;
+        const creditLimit = document.getElementById('credit_limit').value;
+        
+        fetch(`/admin/loans/accounts/${accountId}/update-limit`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `credit_limit=${encodeURIComponent(creditLimit)}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                closeModal('creditLimitModal');
+                showSuccessMessage(data.message);
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Error updating credit limit');
+        });
+    });
+    
+    document.getElementById('statusForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const accountId = document.getElementById('statusAccountId').value;
+        const status = document.getElementById('newStatus').value;
+        
+        fetch(`/admin/loans/accounts/${accountId}/update-status`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `status=${encodeURIComponent(status)}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                closeModal('statusModal');
+                showSuccessMessage(data.message);
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Error updating account status');
+        });
+    });
+    
+    // Success message
+    function showSuccessMessage(message) {
+        const toast = document.createElement('div');
+        toast.className = 'fixed top-4 right-4 z-50 px-6 py-3 bg-green-50 text-green-700 rounded-xl shadow-lg border-l-4 border-green-500';
+        toast.innerHTML = `
+            <div class="flex items-center">
+                <i class="fas fa-check-circle mr-3 text-lg"></i>
+                <span>${message}</span>
+            </div>
+        `;
+        
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+</script>
+{% endblock %}

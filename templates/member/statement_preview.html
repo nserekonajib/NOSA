@@ -1,0 +1,101 @@
+<div class="bg-white rounded-lg p-6">
+    <h5 class="font-bold text-gray-800 mb-4">Statement Preview - {{ statement_type|title }}</h5>
+    <p class="text-sm text-gray-600 mb-6">
+        Period: {{ start_date }} to {{ end_date }}
+    </p>
+    
+    {% if statement_type in ['combined', 'savings'] %}
+    <div class="mb-6">
+        <h6 class="font-semibold text-gray-700 mb-3">Savings Account</h6>
+        {% if savings_account %}
+        <div class="grid grid-cols-2 gap-4 text-sm">
+            <div>
+                <span class="text-gray-600">Account:</span>
+                <span class="font-medium ml-2">{{ savings_account.account_number }}</span>
+            </div>
+            <div>
+                <span class="text-gray-600">Balance:</span>
+                <span class="font-medium ml-2">UGX {{ "{:,.0f}".format(savings_account.current_balance|float) }}</span>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if savings_transactions %}
+        <div class="mt-4">
+            <p class="text-sm text-gray-600 mb-2">Sample Transactions ({{ savings_transactions|length }} total):</p>
+            <div class="space-y-2">
+                {% for transaction in savings_transactions[:3] %}
+                <div class="flex justify-between text-sm">
+                    <span>{{ transaction.created_at[:10] }} - {{ transaction.transaction_type|title }}</span>
+                    <span class="{% if transaction.transaction_type == 'deposit' %}text-green-600{% else %}text-red-600{% endif %}">
+                        {% if transaction.transaction_type == 'deposit' %}+{% else %}-{% endif %}
+                        UGX {{ "{:,.0f}".format(transaction.amount|float) }}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% else %}
+        <p class="text-sm text-gray-500 italic">No savings transactions in this period</p>
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    {% if statement_type in ['combined', 'loan'] %}
+    <div class="mb-6">
+        <h6 class="font-semibold text-gray-700 mb-3">Loan Account</h6>
+        {% if loan_account %}
+        <div class="grid grid-cols-2 gap-4 text-sm">
+            <div>
+                <span class="text-gray-600">Account:</span>
+                <span class="font-medium ml-2">{{ loan_account.account_number }}</span>
+            </div>
+            <div>
+                <span class="text-gray-600">Balance:</span>
+                <span class="font-medium ml-2">UGX {{ "{:,.0f}".format(loan_account.current_balance|float) }}</span>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if loan_transactions %}
+        <div class="mt-4">
+            <p class="text-sm text-gray-600 mb-2">Sample Loan Transactions ({{ loan_transactions|length }} total):</p>
+            <div class="space-y-2">
+                {% for transaction in loan_transactions[:3] %}
+                <div class="flex justify-between text-sm">
+                    <span>{{ transaction.created_at[:10] }} - {{ transaction.transaction_type|title }}</span>
+                    <span class="{% if transaction.transaction_type == 'repayment' %}text-green-600{% else %}text-red-600{% endif %}">
+                        {% if transaction.transaction_type == 'repayment' %}+{% else %}-{% endif %}
+                        UGX {{ "{:,.0f}".format(transaction.amount|float) }}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if repayments %}
+        <div class="mt-4">
+            <p class="text-sm text-gray-600 mb-2">Sample Repayments ({{ repayments|length }} total):</p>
+            <div class="space-y-2">
+                {% for repayment in repayments[:3] %}
+                <div class="flex justify-between text-sm">
+                    <span>Installment #{{ repayment.installment_number }}</span>
+                    <span class="text-green-600">
+                        UGX {{ "{:,.0f}".format(repayment.paid_amount|float) }}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    <div class="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+        <p class="text-sm text-blue-700">
+            <i class="fas fa-info-circle mr-2"></i>
+            This is a preview. The full PDF will include all transactions for the selected period.
+        </p>
+    </div>
+</div>

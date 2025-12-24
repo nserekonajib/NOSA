@@ -1,0 +1,192 @@
+{% extends "adminbase.html" %}
+
+{% block title %}Loan Products - LUNSERK SACCO Admin{% endblock %}
+
+{% block breadcrumb %}Loans / Products{% endblock %}
+
+{% block page_title %}Loan Products{% endblock %}
+
+{% block page_subtitle %}Manage loan products and their terms{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header with Actions -->
+    <div class="flex justify-between items-center">
+        <div>
+            <h2 class="text-lg font-bold text-gray-800">All Loan Products</h2>
+            <p class="text-sm text-gray-600">{{ total_count }} product(s) found</p>
+        </div>
+        <a href="{{ url_for('loans.add_loan_product') }}" 
+           class="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all hover-lift">
+            <i class="fas fa-plus mr-2"></i> Add Product
+        </a>
+    </div>
+
+    <!-- Products Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for product in products %}
+        <div class="card-glass rounded-2xl p-6 hover-lift transition-all duration-300">
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <h3 class="font-bold text-gray-800 text-lg">{{ product.name }}</h3>
+                    <span class="inline-block px-3 py-1 text-xs rounded-full 
+                        {% if product.status == 'active' %}bg-green-100 text-green-800
+                        {% elif product.status == 'inactive' %}bg-gray-100 text-gray-800
+                        {% else %}bg-red-100 text-red-800{% endif %}">
+                        {{ product.status|title }}
+                    </span>
+                </div>
+                <div class="dropdown relative">
+                    <button class="p-2 hover:bg-gray-100 rounded-lg">
+                        <i class="fas fa-ellipsis-v text-gray-500"></i>
+                    </button>
+                    <div class="dropdown-content absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 z-10 hidden">
+                        <a href="{{ url_for('loans.edit_loan_product', product_id=product.id) }}" 
+                           class="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50">
+                            <i class="fas fa-edit mr-2"></i> Edit
+                        </a>
+                        <button onclick="deleteProduct('{{ product.id }}')" 
+                                class="block w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50">
+                            <i class="fas fa-trash mr-2"></i> Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <p class="text-gray-600 text-sm mb-4">{{ product.description or 'No description' }}</p>
+            
+            <!-- Product Details -->
+            <div class="space-y-3">
+                <div class="flex justify-between items-center">
+                    <span class="text-sm text-gray-600">Interest Rate</span>
+                    <span class="font-bold text-gray-800">{{ product.interest_rate }}%</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-sm text-gray-600">Amount Range</span>
+                    <span class="font-bold text-gray-800">UGX {{ "{:,.0f}".format(product.min_amount|float) }} - {{ "{:,.0f}".format(product.max_amount|float) }}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-sm text-gray-600">Repayment Period</span>
+                    <span class="font-bold text-gray-800">{{ product.repayment_period_months }} months</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-sm text-gray-600">Processing Fee</span>
+                    <span class="font-bold text-gray-800">UGX {{ "{:,.0f}".format(product.processing_fee|float) }}</span>
+                </div>
+            </div>
+            
+            <!-- Requirements -->
+            {% if product.requirements %}
+            <div class="mt-4 pt-4 border-t border-gray-200">
+                <h4 class="text-sm font-bold text-gray-700 mb-2">Requirements:</h4>
+                <ul class="text-xs text-gray-600 space-y-1">
+                    {% for req in product.requirements %}
+                    <li class="flex items-center">
+                        <i class="fas fa-check-circle text-green-500 mr-2 text-xs"></i>
+                        {{ req }}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+            
+            <!-- Eligibility -->
+            {% if product.eligibility_criteria %}
+            <div class="mt-4 pt-4 border-t border-gray-200">
+                <h4 class="text-sm font-bold text-gray-700 mb-2">Eligibility:</h4>
+                <div class="text-xs text-gray-600 space-y-1">
+                    {% if product.eligibility_criteria.min_age %}
+                    <div class="flex items-center">
+                        <i class="fas fa-user text-blue-500 mr-2 text-xs"></i>
+                        Min Age: {{ product.eligibility_criteria.min_age }} years
+                    </div>
+                    {% endif %}
+                    {% if product.eligibility_criteria.min_savings_balance %}
+                    <div class="flex items-center">
+                        <i class="fas fa-piggy-bank text-blue-500 mr-2 text-xs"></i>
+                        Min Savings: UGX {{ "{:,.0f}".format(product.eligibility_criteria.min_savings_balance|float) }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% else %}
+        <div class="col-span-3">
+            <div class="card-glass rounded-2xl p-12 text-center">
+                <div class="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                    <i class="fas fa-boxes text-gray-400 text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-bold text-gray-700 mb-2">No Loan Products</h3>
+                <p class="text-gray-600 mb-6">Get started by creating your first loan product</p>
+                <a href="{{ url_for('loans.add_loan_product') }}" 
+                   class="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all inline-block">
+                    <i class="fas fa-plus mr-2"></i> Create Product
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+    // Toggle dropdown
+    document.querySelectorAll('.dropdown button').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const dropdown = this.parentElement.querySelector('.dropdown-content');
+            dropdown.classList.toggle('hidden');
+        });
+    });
+
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', function() {
+        document.querySelectorAll('.dropdown-content').forEach(dropdown => {
+            dropdown.classList.add('hidden');
+        });
+    });
+
+    // Delete product
+    function deleteProduct(productId) {
+        if (confirm('Are you sure you want to delete this loan product?')) {
+            fetch(`/admin/loans/products/delete/${productId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                alert('Error deleting product');
+            });
+        }
+    }
+</script>
+
+<style>
+    .hover-lift {
+        transition: transform 0.2s ease-in-out;
+    }
+    
+    .hover-lift:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+    
+    .dropdown-content {
+        animation: fadeIn 0.2s ease-in-out;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
+{% endblock %}

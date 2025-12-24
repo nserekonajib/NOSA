@@ -1,0 +1,725 @@
+{% extends "adminbase.html" %}
+
+{% block title %}Member Details - LUNSERK SACCO Admin{% endblock %}
+
+{% block breadcrumb %}Members / {{ member.full_name }}{% endblock %}
+
+{% block page_title %}{{ member.full_name }}{% endblock %}
+
+{% block page_subtitle %}Member ID: {{ member.member_number }}{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Profile Header -->
+    <div class="card-glass rounded-3xl p-8">
+        <div class="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
+            <!-- Profile Info -->
+            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-6">
+                <div class="relative">
+                    {% if member.profile_photo_url %}
+                    <img class="h-24 w-24 rounded-2xl object-cover border-4 border-white/50 shadow-xl" 
+                         src="{{ member.profile_photo_url }}" alt="{{ member.full_name }}">
+                    {% else %}
+                    <div class="h-24 w-24 rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center border-4 border-white/50 shadow-xl">
+                        <i class="fas fa-user text-blue-500 text-3xl"></i>
+                    </div>
+                    {% endif %}
+                    <div class="absolute -bottom-2 -right-2">
+                        <span class="px-3 py-1.5 text-xs font-semibold rounded-xl shadow-md
+                            {% if member.account_status == 'active' %}bg-emerald-500/10 text-emerald-700 border border-emerald-500/20
+                            {% elif member.account_status == 'suspended' %}bg-rose-500/10 text-rose-700 border border-rose-500/20
+                            {% elif member.account_status == 'terminated' %}bg-gray-500/10 text-gray-700 border border-gray-500/20
+                            {% else %}bg-amber-500/10 text-amber-700 border border-amber-500/20{% endif %}">
+                            {{ member.account_status|title }}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="space-y-2">
+                    <h2 class="text-3xl font-bold text-gray-900">{{ member.full_name }}</h2>
+                    <div class="flex flex-wrap items-center gap-3">
+                        <div class="flex items-center gap-2 px-3 py-1.5 bg-gray-100/80 rounded-xl">
+                            <i class="fas fa-id-badge text-gray-500 text-sm"></i>
+                            <span class="text-sm font-medium text-gray-700">#{{ member.member_number }}</span>
+                        </div>
+                        <div class="flex items-center gap-2 px-3 py-1.5 bg-gray-100/80 rounded-xl">
+                            <i class="fas fa-calendar-alt text-gray-500 text-sm"></i>
+                            <span class="text-sm text-gray-600">Joined {{ member.created_at[:10] }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="flex flex-wrap gap-3">
+                <a href="{{ url_for('members.members_list') }}"
+                   class="px-5 py-2.5 border border-gray-300/50 bg-white/50 text-gray-700 rounded-xl hover:bg-gray-50/80 transition-all duration-300 hover:shadow-md flex items-center gap-2">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Back to List</span>
+                </a>
+                <button class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:shadow-lg transition-all duration-300 hover:scale-[1.02] flex items-center gap-2">
+                    <i class="fas fa-edit"></i>
+                    <span>Edit Profile</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Financial Overview -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+        <!-- Savings Balance -->
+        <div class="card-glass rounded-2xl p-6 hover:shadow-lg transition-all duration-300">
+            <div class="flex items-start justify-between">
+                <div class="space-y-3">
+                    <div class="flex items-center gap-2">
+                        <div class="p-2 bg-emerald-500/10 rounded-xl">
+                            <i class="fas fa-piggy-bank text-emerald-600 text-lg"></i>
+                        </div>
+                        <span class="text-sm font-medium text-gray-600">Savings Balance</span>
+                    </div>
+                    <p class="text-2xl font-bold text-gray-900">
+                        UGX {{ "{:,.0f}".format(savings_account.current_balance|default(0)) }}
+                    </p>
+                    <p class="text-xs text-gray-500">Available for withdrawal</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loan Status -->
+        {% for loan in member_loans %}
+        <div class="card-glass rounded-2xl p-6 hover:shadow-lg transition-all duration-300">
+            <div class="space-y-4">
+                <div class="flex items-start justify-between">
+                    <div class="space-y-3">
+                        <div class="flex items-center gap-2">
+                            <div class="p-2 {% if loan.loan_status == 'active' %}bg-blue-500/10{% else %}bg-gray-500/10{% endif %} rounded-xl">
+                                <i class="fas fa-hand-holding-usd {% if loan.loan_status == 'active' %}text-blue-600{% else %}text-gray-600{% endif %} text-lg"></i>
+                            </div>
+                            <div>
+                                <span class="text-sm font-medium text-gray-600">Loan Status</span>
+                                <p class="text-lg font-bold text-gray-900">{{ loan.loan_status|capitalize or 'N/A' }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <p class="text-xs text-gray-500">Balance</p>
+                        <p class="text-sm font-semibold text-gray-800">
+                            UGX {{ "{:,.0f}".format(loan.current_balance or 0) }}
+                        </p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500">Rate</p>
+                        <p class="text-sm font-semibold text-gray-800">
+                            {{ loan.interest_rate|default(0) }}%
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="card-glass rounded-2xl p-6 hover:shadow-lg transition-all duration-300">
+            <div class="flex flex-col items-center justify-center h-full text-center space-y-3">
+                <div class="p-3 bg-gray-100/50 rounded-xl">
+                    <i class="fas fa-hand-holding-usd text-gray-400 text-xl"></i>
+                </div>
+                <p class="text-sm text-gray-600">No active loans</p>
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- Shares Owned -->
+        <div class="card-glass rounded-2xl p-6 hover:shadow-lg transition-all duration-300">
+            <div class="space-y-3">
+                <div class="flex items-center gap-2">
+                    <div class="p-2 bg-amber-500/10 rounded-xl">
+                        <i class="fas fa-layer-group text-amber-600 text-lg"></i>
+                    </div>
+                    <span class="text-sm font-medium text-gray-600">Shares Owned</span>
+                </div>
+                <p class="text-2xl font-bold text-gray-900">
+                    {{ "{:,}".format(member.shares_owned or 0) }}
+                </p>
+                <p class="text-xs text-gray-500">Total share count</p>
+            </div>
+        </div>
+
+        <!-- Membership Status -->
+        <div class="card-glass rounded-2xl p-6 hover:shadow-lg transition-all duration-300">
+            <div class="space-y-3">
+                <div class="flex items-center gap-2">
+                    <div class="p-2 {% if member.membership_fee_paid %}bg-emerald-500/10{% else %}bg-rose-500/10{% endif %} rounded-xl">
+                        <i class="fas fa-id-card {% if member.membership_fee_paid %}text-emerald-600{% else %}text-rose-600{% endif %} text-lg"></i>
+                    </div>
+                    <span class="text-sm font-medium text-gray-600">Membership</span>
+                </div>
+                <p class="text-2xl font-bold {% if member.membership_fee_paid %}text-emerald-700{% else %}text-rose-700{% endif %}">
+                    {% if member.membership_fee_paid %}Active{% else %}Pending{% endif %}
+                </p>
+                <p class="text-xs text-gray-500">Fee status</p>
+            </div>
+        </div>
+
+        <!-- Total Payments -->
+        <div class="card-glass rounded-2xl p-6 hover:shadow-lg transition-all duration-300">
+            <div class="space-y-3">
+                <div class="flex items-center gap-2">
+                    <div class="p-2 bg-violet-500/10 rounded-xl">
+                        <i class="fas fa-receipt text-violet-600 text-lg"></i>
+                    </div>
+                    <span class="text-sm font-medium text-gray-600">Total Payments</span>
+                </div>
+                <p class="text-2xl font-bold text-gray-900">
+                    UGX {{ "{:,.0f}".format(payments|sum(attribute='amount')|default(0)) }}
+                </p>
+                <p class="text-xs text-gray-500">All transactions</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Information Tabs -->
+    <div class="card-glass rounded-3xl overflow-hidden">
+        <!-- Tab Navigation -->
+        <div class="border-b border-gray-200/50 bg-gray-50/30">
+            <nav class="flex overflow-x-auto">
+                <button onclick="showTab('personal')" 
+                        class="tab-nav-item px-6 py-4 font-medium text-sm whitespace-nowrap active-tab">
+                    <i class="fas fa-user-circle mr-2"></i>
+                    Personal Info
+                </button>
+                <button onclick="showTab('documents')" 
+                        class="tab-nav-item px-6 py-4 font-medium text-sm whitespace-nowrap">
+                    <i class="fas fa-file-alt mr-2"></i>
+                    Documents
+                </button>
+                <button onclick="showTab('payments')" 
+                        class="tab-nav-item px-6 py-4 font-medium text-sm whitespace-nowrap">
+                    <i class="fas fa-credit-card mr-2"></i>
+                    Payment History
+                </button>
+                <button onclick="showTab('actions')" 
+                        class="tab-nav-item px-6 py-4 font-medium text-sm whitespace-nowrap">
+                    <i class="fas fa-cog mr-2"></i>
+                    Actions
+                </button>
+            </nav>
+        </div>
+        
+        <!-- Tab Content -->
+        <div class="p-8">
+            <!-- Personal Info Tab -->
+            <div id="personal-tab" class="tab-content space-y-8">
+                <!-- Basic Information -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="space-y-6">
+                        <h3 class="text-xl font-bold text-gray-900 flex items-center gap-2">
+                            <i class="fas fa-info-circle text-blue-500"></i>
+                            Basic Information
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="text-xs font-medium text-gray-500 uppercase tracking-wider">Email</label>
+                                <div class="p-3 bg-gray-50/50 rounded-xl border border-gray-200/50">
+                                    <p class="font-medium text-gray-900">{{ member.email }}</p>
+                                </div>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</label>
+                                <div class="p-3 bg-gray-50/50 rounded-xl border border-gray-200/50">
+                                    <p class="font-medium text-gray-900">{{ member.phone_number }}</p>
+                                </div>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-xs font-medium text-gray-500 uppercase tracking-wider">Date of Birth</label>
+                                <div class="p-3 bg-gray-50/50 rounded-xl border border-gray-200/50">
+                                    <p class="font-medium text-gray-900">{{ member.date_of_birth }}</p>
+                                </div>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-xs font-medium text-gray-500 uppercase tracking-wider">Gender</label>
+                                <div class="p-3 bg-gray-50/50 rounded-xl border border-gray-200/50">
+                                    <p class="font-medium text-gray-900">{{ member.gender|title }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Identification -->
+                    <div class="space-y-6">
+                        <h3 class="text-xl font-bold text-gray-900 flex items-center gap-2">
+                            <i class="fas fa-id-card text-purple-500"></i>
+                            Identification
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="text-xs font-medium text-gray-500 uppercase tracking-wider">NIN Number</label>
+                                <div class="p-3 bg-gray-50/50 rounded-xl border border-gray-200/50">
+                                    <p class="font-medium text-gray-900">{{ member.nin_number or 'Not provided' }}</p>
+                                </div>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-xs font-medium text-gray-500 uppercase tracking-wider">National ID</label>
+                                <div class="p-3 bg-gray-50/50 rounded-xl border border-gray-200/50">
+                                    <p class="font-medium text-gray-900">{{ member.national_id or 'Not provided' }}</p>
+                                </div>
+                            </div>
+                            <div class="md:col-span-2 space-y-2">
+                                <label class="text-xs font-medium text-gray-500 uppercase tracking-wider">Contact Address</label>
+                                <div class="p-3 bg-gray-50/50 rounded-xl border border-gray-200/50">
+                                    <p class="font-medium text-gray-900">{{ member.contact_address or 'Not provided' }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Emergency Contact -->
+                <div class="space-y-6">
+                    <h3 class="text-xl font-bold text-gray-900 flex items-center gap-2">
+                        <i class="fas fa-phone-alt text-rose-500"></i>
+                        Emergency Contact
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="space-y-2">
+                            <label class="text-xs font-medium text-gray-500 uppercase tracking-wider">Contact Name</label>
+                            <div class="p-4 bg-gray-50/50 rounded-xl border border-gray-200/50">
+                                <p class="font-medium text-gray-900">{{ member.emergency_contact_name or 'Not provided' }}</p>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-xs font-medium text-gray-500 uppercase tracking-wider">Contact Phone</label>
+                            <div class="p-4 bg-gray-50/50 rounded-xl border border-gray-200/50">
+                                <p class="font-medium text-gray-900">{{ member.emergency_contact_phone or 'Not provided' }}</p>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-xs font-medium text-gray-500 uppercase tracking-wider">Relationship</label>
+                            <div class="p-4 bg-gray-50/50 rounded-xl border border-gray-200/50">
+                                <p class="font-medium text-gray-900">{{ member.emergency_contact_relationship or 'Not provided' }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Documents Tab -->
+            <div id="documents-tab" class="tab-content hidden">
+                <div class="space-y-6">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-xl font-bold text-gray-900 flex items-center gap-2">
+                            <i class="fas fa-folder-open text-amber-500"></i>
+                            Member Documents
+                        </h3>
+                        <span class="text-sm text-gray-500">{{ documents|length }} document(s)</span>
+                    </div>
+                    
+                    {% if documents %}
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {% for doc in documents %}
+                        <div class="group border border-gray-200/50 rounded-2xl p-5 hover:border-blue-300/50 hover:shadow-lg transition-all duration-300">
+                            <div class="flex items-start justify-between mb-4">
+                                <div class="space-y-1">
+                                    <h4 class="font-semibold text-gray-900">{{ doc.document_type|replace('_', ' ')|title }}</h4>
+                                    <p class="text-xs text-gray-500 truncate">{{ doc.file_name }}</p>
+                                </div>
+                                <span class="px-2.5 py-1 text-xs bg-gray-100 text-gray-600 rounded-lg">
+                                    {{ doc.file_size|filesizeformat }}
+                                </span>
+                            </div>
+                            
+                            {% if doc.cloudinary_url %}
+                            <div class="relative overflow-hidden rounded-xl mb-4">
+                                <img src="{{ doc.cloudinary_url }}" alt="{{ doc.document_type }}" 
+                                     class="w-full h-40 object-cover rounded-xl group-hover:scale-105 transition-transform duration-300">
+                                <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                            </div>
+                            {% endif %}
+                            
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <a href="{{ doc.cloudinary_url }}" target="_blank"
+                                       class="px-3 py-1.5 bg-blue-500/10 text-blue-700 rounded-lg hover:bg-blue-500/20 transition-colors text-sm flex items-center gap-2">
+                                        <i class="fas fa-eye text-xs"></i>
+                                        Preview
+                                    </a>
+                                    <a href="{{ doc.cloudinary_url }}" download
+                                       class="px-3 py-1.5 bg-gray-500/10 text-gray-700 rounded-lg hover:bg-gray-500/20 transition-colors text-sm flex items-center gap-2">
+                                        <i class="fas fa-download text-xs"></i>
+                                        Download
+                                    </a>
+                                </div>
+                                <span class="text-xs text-gray-400">{{ doc.created_at[:10] }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-12">
+                        <div class="mx-auto w-24 h-24 bg-gray-100/50 rounded-full flex items-center justify-center mb-4">
+                            <i class="fas fa-folder-open text-gray-400 text-3xl"></i>
+                        </div>
+                        <h4 class="text-lg font-medium text-gray-700 mb-2">No documents uploaded</h4>
+                        <p class="text-gray-500 max-w-md mx-auto">This member hasn't uploaded any documents yet. Documents will appear here once uploaded.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+           <!-- Payments Tab -->
+<div id="payments-tab" class="tab-content hidden">
+    <div class="space-y-6">
+        <div class="flex items-center justify-between">
+            <h3 class="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <i class="fas fa-history text-emerald-500"></i>
+                Payment History
+            </h3>
+            <div class="flex items-center gap-4">
+                <div class="text-sm">
+                    <span class="text-gray-900 font-semibold">{{ payments|length }}</span>
+                    <span class="text-gray-500"> total transactions</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
+                        {{ membership_payments_count }} Membership
+                    </span>
+                    <span class="px-3 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+                        {{ loan_repayments_count }} Repayments
+                    </span>
+                    <span class="px-3 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
+                        {{ loan_transactions_count }} Loan Tx
+                    </span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Payment Type Filter -->
+        <div class="flex flex-wrap gap-3 mb-6">
+            <button onclick="filterPayments('all')" class="payment-filter-btn active px-4 py-2 bg-blue-100 text-blue-700 rounded-xl text-sm font-medium">
+                All Payments
+            </button>
+            <button onclick="filterPayments('membership')" class="payment-filter-btn px-4 py-2 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-200">
+                <i class="fas fa-id-card mr-2"></i>Membership
+            </button>
+            <button onclick="filterPayments('loan_repayment')" class="payment-filter-btn px-4 py-2 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-200">
+                <i class="fas fa-money-bill-wave mr-2"></i>Repayments
+            </button>
+            <button onclick="filterPayments('loan_transaction')" class="payment-filter-btn px-4 py-2 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-200">
+                <i class="fas fa-exchange-alt mr-2"></i>Loan Transactions
+            </button>
+        </div>
+        
+        {% if payments %}
+        <div class="bg-white/50 rounded-2xl border border-gray-200/50 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200/50">
+                    <thead class="bg-gray-50/50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Date</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Type</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Description</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Method</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Amount</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Reference</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200/50" id="paymentsTableBody">
+                        {% for payment in payments %}
+                        <tr class="payment-row hover:bg-gray-50/30 transition-colors" data-type="{{ payment.type }}">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900">{{ payment.date[:10] if payment.date else 'N/A' }}</div>
+                                <div class="text-xs text-gray-500">{{ payment.date[11:16] if payment.date and payment.date|length > 10 else '' }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold
+                                    {% if payment.type == 'membership' %}bg-blue-500/10 text-blue-700
+                                    {% elif payment.type == 'loan_repayment' %}bg-green-500/10 text-green-700
+                                    {% else %}bg-purple-500/10 text-purple-700{% endif %}">
+                                    {% if payment.type == 'membership' %}
+                                    <i class="fas fa-id-card mr-1.5 text-[6px]"></i>
+                                    Membership
+                                    {% elif payment.type == 'loan_repayment' %}
+                                    <i class="fas fa-money-bill-wave mr-1.5 text-[6px]"></i>
+                                    Repayment
+                                    {% else %}
+                                    <i class="fas fa-exchange-alt mr-1.5 text-[6px]"></i>
+                                    Loan
+                                    {% endif %}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="text-sm font-medium text-gray-900">{{ payment.description }}</div>
+                                {% if payment.loan_account %}
+                                <div class="text-xs text-gray-500">Account: {{ payment.loan_account }}</div>
+                                {% endif %}
+                                {% if payment.balance_before and payment.balance_after %}
+                                <div class="text-xs text-gray-500 mt-1">
+                                    Balance: {{ "{:,.0f}".format(payment.balance_before|float) }} → {{ "{:,.0f}".format(payment.balance_after|float) }}
+                                </div>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center gap-2">
+                                    <div class="p-1.5 bg-gray-100 rounded-lg">
+                                        <i class="fas 
+                                            {% if payment.method == 'mobile_money' %}fa-mobile-alt
+                                            {% elif payment.method == 'bank_transfer' %}fa-university
+                                            {% elif payment.method == 'cash' %}fa-money-bill-alt
+                                            {% else %}fa-credit-card{% endif %} 
+                                            text-gray-500 text-xs"></i>
+                                    </div>
+                                    <span class="text-sm text-gray-900">{{ payment.method|replace('_', ' ')|title if payment.method else 'N/A' }}</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-lg font-bold 
+                                    {% if payment.type == 'loan_repayment' %}text-green-700
+                                    {% elif payment.type == 'loan_transaction' and 'disbursement' in payment.description|lower %}text-red-700
+                                    {% else %}text-gray-900{% endif %}">
+                                    UGX {{ "{:,.0f}".format(payment.amount|float if payment.amount else 0) }}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold
+                                    {% if payment.status == 'completed' %}bg-emerald-500/10 text-emerald-700
+                                    {% elif payment.status == 'pending' %}bg-amber-500/10 text-amber-700
+                                    {% else %}bg-rose-500/10 text-rose-700{% endif %}">
+                                    <i class="fas fa-circle mr-1.5 text-[6px]"></i>
+                                    {{ payment.status|title if payment.status else 'Unknown' }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                {% if payment.reference %}
+                                <code class="text-xs font-mono text-gray-600 bg-gray-100/50 px-2 py-1 rounded">
+                                    {{ payment.reference }}
+                                </code>
+                                {% else %}
+                                <span class="text-xs text-gray-400">No reference</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- No payments message (hidden by default) -->
+            <div id="noPaymentsMessage" class="hidden text-center py-12">
+                <div class="mx-auto w-24 h-24 bg-gray-100/50 rounded-full flex items-center justify-center mb-4">
+                    <i class="fas fa-receipt text-gray-400 text-3xl"></i>
+                </div>
+                <h4 class="text-lg font-medium text-gray-700 mb-2">No payments found</h4>
+                <p class="text-gray-500">No payments match the selected filter.</p>
+            </div>
+        </div>
+        {% else %}
+        <div class="text-center py-12">
+            <div class="mx-auto w-24 h-24 bg-gray-100/50 rounded-full flex items-center justify-center mb-4">
+                <i class="fas fa-receipt text-gray-400 text-3xl"></i>
+            </div>
+            <h4 class="text-lg font-medium text-gray-700 mb-2">No payment records</h4>
+            <p class="text-gray-500">This member hasn't made any payments yet.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+            <!-- Actions Tab -->
+            <div id="actions-tab" class="tab-content hidden">
+                <div class="space-y-6">
+                    <h3 class="text-xl font-bold text-gray-900 flex items-center gap-2">
+                        <i class="fas fa-user-cog text-gray-500"></i>
+                        Member Management
+                    </h3>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Reset Password Card -->
+                        <form method="POST" action="{{ url_for('members.reset_member_password', member_id=member.id) }}"
+                              class="card-glass rounded-2xl p-6 border border-gray-200/50 hover:shadow-lg transition-all duration-300">
+                            <div class="space-y-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="p-3 bg-blue-500/10 rounded-xl">
+                                        <i class="fas fa-key text-blue-600 text-lg"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-bold text-gray-900">Reset Password</h4>
+                                        <p class="text-sm text-gray-600">Reset to default password (123456)</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="p-4 bg-amber-50/50 rounded-xl border border-amber-200/50">
+                                    <div class="flex items-start gap-2">
+                                        <i class="fas fa-exclamation-triangle text-amber-500 mt-0.5"></i>
+                                        <p class="text-sm text-amber-700">The member will receive an email notification about this password reset.</p>
+                                    </div>
+                                </div>
+                                
+                                <button type="submit" 
+                                        class="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium rounded-xl hover:shadow-lg transition-all duration-300 hover:scale-[1.02]">
+                                    <i class="fas fa-redo-alt mr-2"></i>
+                                    Reset Password Now
+                                </button>
+                            </div>
+                        </form>
+
+                        <!-- Update Status Card -->
+                        <form method="POST" action="{{ url_for('members.update_member_status', member_id=member.id) }}"
+                              class="card-glass rounded-2xl p-6 border border-gray-200/50 hover:shadow-lg transition-all duration-300">
+                            <div class="space-y-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="p-3 {% if member.account_status == 'active' %}bg-emerald-500/10{% elif member.account_status == 'suspended' %}bg-rose-500/10{% else %}bg-gray-500/10{% endif %} rounded-xl">
+                                        <i class="fas {% if member.account_status == 'active' %}fa-check-circle text-emerald-600{% elif member.account_status == 'suspended' %}fa-ban text-rose-600{% else %}fa-times-circle text-gray-600{% endif %} text-lg"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-bold text-gray-900">Update Account Status</h4>
+                                        <p class="text-sm text-gray-600">Change member's active status</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="space-y-3">
+                                    <select name="status" class="w-full px-4 py-3 border border-gray-300/50 rounded-xl bg-white/50 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all">
+                                        <option value="active" {% if member.account_status == 'active' %}selected{% endif %}>
+                                            🟢 Active - Full access to all services
+                                        </option>
+                                        <option value="suspended" {% if member.account_status == 'suspended' %}selected{% endif %}>
+                                            🟡 Suspended - Limited access, no new loans
+                                        </option>
+                                        <option value="terminated" {% if member.account_status == 'terminated' %}selected{% endif %}>
+                                            🔴 Terminated - No access, account closed
+                                        </option>
+                                    </select>
+                                    
+                                    <button type="submit" 
+                                            class="w-full px-4 py-3 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white font-medium rounded-xl hover:shadow-lg transition-all duration-300 hover:scale-[1.02]">
+                                        <i class="fas fa-sync-alt mr-2"></i>
+                                        Update Status
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Tab functionality
+    function showTab(tabName) {
+        // Hide all tab contents
+        document.querySelectorAll('.tab-content').forEach(tab => {
+            tab.classList.add('hidden');
+        });
+        
+        // Remove active class from all tabs
+        document.querySelectorAll('.tab-nav-item').forEach(button => {
+            button.classList.remove('active-tab', 'border-blue-500', 'text-blue-600', 'bg-white/50');
+            button.classList.add('text-gray-600', 'hover:text-gray-800', 'hover:bg-gray-100/30');
+        });
+        
+        // Show selected tab content
+        document.getElementById(tabName + '-tab').classList.remove('hidden');
+        
+        // Add active class to selected tab
+        const activeTab = event.currentTarget;
+        activeTab.classList.add('active-tab', 'border-blue-500', 'text-blue-600', 'bg-white/50');
+        activeTab.classList.remove('text-gray-600', 'hover:text-gray-800', 'hover:bg-gray-100/30');
+    }
+    
+    // Initialize first tab as active
+    document.addEventListener('DOMContentLoaded', function() {
+        const firstTab = document.querySelector('.tab-nav-item.active-tab');
+        if (firstTab) {
+            firstTab.classList.add('border-blue-500', 'text-blue-600', 'bg-white/50');
+        }
+    });
+
+
+      // Payment filtering functionality
+        function filterPayments(type) {
+            const rows = document.querySelectorAll('.payment-row');
+            const buttons = document.querySelectorAll('.payment-filter-btn');
+            const noPaymentsMessage = document.getElementById('noPaymentsMessage');
+            let visibleCount = 0;
+            
+            // Update active button
+            buttons.forEach(btn => {
+                if (btn.textContent.includes(type.replace('_', ' ')) || (type === 'all' && btn.textContent.includes('All Payments'))) {
+                    btn.classList.add('active', 'bg-blue-100', 'text-blue-700');
+                    btn.classList.remove('bg-gray-100', 'text-gray-700', 'hover:bg-gray-200');
+                } else {
+                    btn.classList.remove('active', 'bg-blue-100', 'text-blue-700');
+                    btn.classList.add('bg-gray-100', 'text-gray-700', 'hover:bg-gray-200');
+                }
+            });
+            
+            // Show/hide rows based on filter
+            rows.forEach(row => {
+                if (type === 'all' || row.dataset.type === type) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            // Show/hide no payments message
+            if (visibleCount === 0) {
+                noPaymentsMessage.classList.remove('hidden');
+            } else {
+                noPaymentsMessage.classList.add('hidden');
+            }
+        }
+        
+        // Initialize payment filtering
+        document.addEventListener('DOMContentLoaded', function() {
+            const paymentRows = document.querySelectorAll('.payment-row');
+            if (paymentRows.length > 0) {
+                // Ensure all payments are visible initially
+                filterPayments('all');
+            }
+        });
+  
+</script>
+
+<style>
+    .tab-nav-item {
+        border-bottom: 3px solid transparent;
+        transition: all 0.2s ease;
+    }
+    
+    .tab-nav-item:hover {
+        background: rgba(243, 244, 246, 0.5);
+    }
+    
+    .tab-nav-item.active-tab {
+        border-bottom-color: #3b82f6;
+        color: #2563eb;
+        background: rgba(255, 255, 255, 0.5);
+    }
+    
+    .tab-content {
+        animation: slideIn 0.3s ease;
+    }
+    
+    @keyframes slideIn {
+        from { 
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to { 
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .card-glass {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+</style>
+{% endblock %}

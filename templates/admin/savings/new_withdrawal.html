@@ -1,0 +1,235 @@
+{% extends "adminbase.html" %}
+
+{% block title %}New Withdrawal - LUNSERK SACCO Admin{% endblock %}
+
+{% block breadcrumb %}Savings / Withdrawals / New{% endblock %}
+
+{% block page_title %}Create New Withdrawal{% endblock %}
+
+{% block page_subtitle %}Process cash withdrawal for member{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <!-- Withdrawal Form Card -->
+    <div class="card-glass rounded-2xl p-6">
+        <form id="withdrawalForm" method="POST" class="space-y-6">
+            <!-- Account Selection -->
+            <div>
+                <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Account Information</h3>
+                
+                <div>
+                    <label for="savings_account_id" class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-wallet text-blue-500 mr-1"></i> Select Savings Account *
+                    </label>
+                    <select id="savings_account_id" name="savings_account_id" required
+                            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                        <option value="">Select Account</option>
+                        {% for account in accounts %}
+                        <option value="{{ account.id }}"
+                                {% if request.args.get('account') == account.id|string %}selected{% endif %}>
+                            {{ account.account_number }} - {{ account.members.full_name }} (UGX {{ "{:,.0f}".format(account.available_balance) }} available)
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Withdrawal Details -->
+            <div>
+                <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Withdrawal Details</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Amount -->
+                    <div>
+                        <label for="amount" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-money-bill-wave text-blue-500 mr-1"></i> Amount (UGX) *
+                        </label>
+                        <input type="number" id="amount" name="amount" required min="1000" step="100"
+                               class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                               placeholder="Enter withdrawal amount">
+                    </div>
+                    
+                    <!-- Withdrawal Method -->
+                    <div>
+                        <label for="withdrawal_method" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-credit-card text-blue-500 mr-1"></i> Withdrawal Method *
+                        </label>
+                        <select id="withdrawal_method" name="withdrawal_method" required
+                                class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                            <option value="cash">Cash</option>
+                            <option value="bank_transfer">Bank Transfer</option>
+                            <option value="mobile_money">Mobile Money</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Description -->
+                <div class="mt-4">
+                    <label for="description" class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-file-alt text-blue-500 mr-1"></i> Description (Optional)
+                    </label>
+                    <textarea id="description" name="description" rows="3"
+                              class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                              placeholder="Enter withdrawal description or purpose"></textarea>
+                </div>
+            </div>
+
+            <!-- Account Balance Preview -->
+            <div id="balancePreview" class="hidden p-4 bg-blue-50 rounded-xl">
+                <h4 class="font-bold text-gray-800 mb-2">Account Balance Preview</h4>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-sm text-gray-600">Current Balance</p>
+                        <p id="currentBalance" class="text-lg font-bold text-gray-800">UGX 0</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">Available Balance</p>
+                        <p id="availableBalance" class="text-lg font-bold text-gray-800">UGX 0</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">Withdrawal Amount</p>
+                        <p id="withdrawalAmount" class="text-lg font-bold text-red-600">UGX 0</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">New Balance</p>
+                        <p id="newBalance" class="text-lg font-bold text-gray-800">UGX 0</p>
+                    </div>
+                </div>
+                <div id="insufficientFunds" class="mt-2 hidden">
+                    <p class="text-sm text-red-600 font-medium">
+                        <i class="fas fa-exclamation-triangle mr-1"></i> Insufficient funds!
+                    </p>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="pt-6 border-t border-gray-200">
+                <div class="flex justify-between">
+                    <a href="{{ url_for('savings.withdrawals') }}" 
+                       class="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors">
+                        <i class="fas fa-arrow-left mr-2"></i> Back to List
+                    </a>
+                    
+                    <button type="submit" 
+                            class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all">
+                        <i class="fas fa-check mr-2"></i> Create Withdrawal Request
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Instructions -->
+    <div class="mt-6 p-6 bg-yellow-50 rounded-xl border border-yellow-200">
+        <h4 class="font-bold text-gray-800 mb-2">Important Notes</h4>
+        <ul class="text-sm text-gray-600 space-y-1">
+            <li>• Minimum withdrawal amount: UGX 1,000</li>
+            <li>• Withdrawals are subject to available balance</li>
+            <li>• Cash withdrawals require physical cash disbursement</li>
+            <li>• Bank transfers may take 1-2 business days to process</li>
+            <li>• All withdrawals require admin approval</li>
+            <li>• Members will receive SMS notification upon approval</li>
+        </ul>
+    </div>
+</div>
+
+<script>
+    // Store account data for balance calculation
+    const accountData = {};
+    {% for account in accounts %}
+    accountData["{{ account.id }}"] = {
+        current_balance: {{ account.current_balance }},
+        available_balance: {{ account.available_balance }}
+    };
+    {% endfor %}
+
+    // Update balance preview when account or amount changes
+    function updateBalancePreview() {
+        const accountId = document.getElementById('savings_account_id').value;
+        const amount = parseFloat(document.getElementById('amount').value) || 0;
+        const preview = document.getElementById('balancePreview');
+        
+        if (accountId && accountData[accountId]) {
+            const account = accountData[accountId];
+            const currentBalance = account.current_balance;
+            const availableBalance = account.available_balance;
+            const newBalance = currentBalance - amount;
+            
+            // Update display
+            document.getElementById('currentBalance').textContent = 'UGX ' + currentBalance.toLocaleString();
+            document.getElementById('availableBalance').textContent = 'UGX ' + availableBalance.toLocaleString();
+            document.getElementById('withdrawalAmount').textContent = 'UGX ' + amount.toLocaleString();
+            document.getElementById('newBalance').textContent = 'UGX ' + newBalance.toLocaleString();
+            
+            // Show/hide insufficient funds warning
+            const insufficientFunds = document.getElementById('insufficientFunds');
+            if (amount > availableBalance) {
+                insufficientFunds.classList.remove('hidden');
+                document.querySelector('button[type="submit"]').disabled = true;
+                document.querySelector('button[type="submit"]').classList.add('opacity-50', 'cursor-not-allowed');
+            } else {
+                insufficientFunds.classList.add('hidden');
+                document.querySelector('button[type="submit"]').disabled = false;
+                document.querySelector('button[type="submit"]').classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+            
+            // Show preview
+            preview.classList.remove('hidden');
+        } else {
+            preview.classList.add('hidden');
+        }
+    }
+    
+    // Event listeners
+    document.getElementById('savings_account_id').addEventListener('change', updateBalancePreview);
+    document.getElementById('amount').addEventListener('input', updateBalancePreview);
+    
+    // Form validation
+    document.getElementById('withdrawalForm').addEventListener('submit', function(e) {
+        const accountId = document.getElementById('savings_account_id').value;
+        const amount = parseFloat(document.getElementById('amount').value) || 0;
+        
+        if (!accountId) {
+            e.preventDefault();
+            alert('Please select a savings account');
+            return;
+        }
+        
+        if (amount < 1000) {
+            e.preventDefault();
+            alert('Minimum withdrawal amount is UGX 1,000');
+            return;
+        }
+        
+        if (accountData[accountId] && amount > accountData[accountId].available_balance) {
+            e.preventDefault();
+            alert('Withdrawal amount exceeds available balance');
+            return;
+        }
+        
+        // Confirm submission
+        if (!confirm('Create withdrawal request for UGX ' + amount.toLocaleString() + '?')) {
+            e.preventDefault();
+        }
+    });
+    
+    // Initialize if account is preselected
+    document.addEventListener('DOMContentLoaded', function() {
+        const accountId = document.getElementById('savings_account_id').value;
+        if (accountId) {
+            updateBalancePreview();
+        }
+    });
+</script>
+
+<style>
+    /* Custom styles for form elements */
+    select, input, textarea {
+        transition: all 0.2s ease;
+    }
+    
+    select:focus, input:focus, textarea:focus {
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+</style>
+{% endblock %}

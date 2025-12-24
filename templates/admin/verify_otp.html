@@ -1,0 +1,229 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Verify OTP - LUNSERK SACCO{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center gradient-bg py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full animate__animated animate__fadeIn">
+        <!-- OTP Verification Card -->
+        <div class="bg-white rounded-2xl shadow-2xl overflow-hidden card-hover">
+            <div class="px-8 py-8">
+                <!-- Header -->
+                <div class="text-center mb-8">
+                    <div class="inline-flex items-center justify-center w-16 h-16 bg-purple-100 rounded-full mb-4">
+                        <i class="fas fa-mobile-alt text-purple-600 text-2xl"></i>
+                    </div>
+                    <h2 class="text-3xl font-bold text-gray-800 mb-2">Two-Factor Verification</h2>
+                    <p class="text-gray-600">Enter the 6-digit code sent to your email</p>
+                </div>
+                
+                <!-- Instructions -->
+                <div class="mb-6 p-4 bg-blue-50 rounded-lg">
+                    <p class="text-sm text-blue-800 text-center">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        For enhanced security, please enter the OTP sent to your registered email
+                    </p>
+                </div>
+                
+                <!-- OTP Form -->
+                <form id="otpForm" method="POST" 
+                      onsubmit="setLoading('verifyBtn', true); return validateOTP();">
+                    <!-- OTP Input -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-shield-alt text-blue-500 mr-2"></i>6-Digit OTP Code
+                        </label>
+                        <div id="otp-container" class="flex justify-between space-x-2 mb-4">
+                            {% for i in range(6) %}
+                            <input type="text" 
+                                   name="otp-{{ i }}" 
+                                   data-index="{{ i }}"
+                                   class="otp-digit w-12 h-12 text-center text-2xl font-bold border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
+                                   maxlength="1"
+                                   onkeypress="return /[0-9]/i.test(event.key)">
+                            {% endfor %}
+                        </div>
+                        <input type="hidden" id="otp" name="otp">
+                    </div>
+                    
+                    <!-- Timer -->
+                    <div class="mb-6 text-center">
+                        <p class="text-sm text-gray-600">
+                            <i class="fas fa-clock mr-1"></i>
+                            Code expires in: <span id="timer" class="font-medium text-blue-600">10:00</span>
+                        </p>
+                    </div>
+                    
+                    <!-- Submit Button -->
+                    <button id="verifyBtn" type="submit" 
+                            class="w-full btn-primary text-white font-semibold py-3 px-4 rounded-lg hover:shadow-lg transition-all duration-300 flex items-center justify-center">
+                        <i class="fas fa-check-circle mr-2"></i> Verify & Continue
+                    </button>
+                    
+                    <!-- Resend Option -->
+                    <div class="mt-4 text-center">
+                        <p class="text-sm text-gray-600">
+                            Didn't receive the code? 
+                            <button type="button" 
+                                    id="resendBtn" 
+                                    onclick="resendOTP()"
+                                    class="text-blue-600 hover:text-blue-800 font-medium disabled:text-gray-400 disabled:cursor-not-allowed">
+                                Resend OTP
+                            </button>
+                        </p>
+                    </div>
+                </form>
+                
+                <!-- Security Notice -->
+                <div class="mt-6 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-exclamation-triangle text-yellow-400"></i>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-yellow-700">
+                                <strong>Important:</strong> This code is valid for 10 minutes only. 
+                                Never share your OTP with anyone.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Help Section -->
+            <div class="bg-gray-50 px-8 py-4 border-t border-gray-200">
+                <details class="text-center">
+                    <summary class="text-sm text-gray-600 cursor-pointer hover:text-blue-600 transition-colors">
+                        <i class="fas fa-question-circle mr-1"></i>
+                        Having trouble receiving the OTP?
+                    </summary>
+                    <div class="mt-2 p-3 bg-white rounded-lg border border-gray-200 text-left">
+                        <ul class="text-xs text-gray-700 space-y-1">
+                            <li><i class="fas fa-check-circle text-green-500 mr-1"></i> Check your spam/junk folder</li>
+                            <li><i class="fas fa-check-circle text-green-500 mr-1"></i> Ensure email address is correct</li>
+                            <li><i class="fas fa-check-circle text-green-500 mr-1"></i> Wait 1-2 minutes before resending</li>
+                            <li><i class="fas fa-check-circle text-green-500 mr-1"></i> Contact support if issue persists</li>
+                        </ul>
+                    </div>
+                </details>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Setup OTP input auto-focus
+    setupOTPInputs('otp-container');
+    
+    // Timer functionality
+    let timeLeft = 600; // 10 minutes in seconds
+    const timerElement = document.getElementById('timer');
+    const resendBtn = document.getElementById('resendBtn');
+    
+    function updateTimer() {
+        const minutes = Math.floor(timeLeft / 60);
+        const seconds = timeLeft % 60;
+        timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        
+        if (timeLeft <= 0) {
+            clearInterval(timerInterval);
+            timerElement.textContent = "Expired";
+            timerElement.className = "font-medium text-red-600";
+            resendBtn.disabled = false;
+        } else {
+            timeLeft--;
+        }
+    }
+    
+    const timerInterval = setInterval(updateTimer, 1000);
+    
+    // OTP validation
+    function validateOTP() {
+        const otpDigits = document.querySelectorAll('.otp-digit');
+        let otpCode = '';
+        
+        otpDigits.forEach(digit => {
+            otpCode += digit.value;
+        });
+        
+        if (otpCode.length !== 6) {
+            alert('Please enter all 6 digits of the OTP');
+            return false;
+        }
+        
+        // Set hidden input value
+        document.getElementById('otp').value = otpCode;
+        return true;
+    }
+    
+    // Resend OTP functionality
+    async function resendOTP() {
+        resendBtn.disabled = true;
+        resendBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Sending...';
+        
+        try {
+            const response = await fetch("{{ url_for('adminauth.resend_otp') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                alert('New OTP has been sent to your email');
+                
+                // Reset timer
+                timeLeft = 600;
+                timerElement.textContent = "10:00";
+                timerElement.className = "font-medium text-blue-600";
+                
+                // Clear OTP inputs
+                document.querySelectorAll('.otp-digit').forEach(input => {
+                    input.value = '';
+                });
+                document.querySelector('.otp-digit').focus();
+                
+                // Disable resend button for 60 seconds
+                setTimeout(() => {
+                    resendBtn.disabled = false;
+                    resendBtn.innerHTML = 'Resend OTP';
+                }, 60000);
+            } else {
+                alert('Failed to resend OTP: ' + data.message);
+                resendBtn.disabled = false;
+                resendBtn.innerHTML = 'Resend OTP';
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Failed to resend OTP. Please try again.');
+            resendBtn.disabled = false;
+            resendBtn.innerHTML = 'Resend OTP';
+        }
+    }
+    
+    // Auto-submit when all digits entered
+    document.querySelectorAll('.otp-digit').forEach((digit, index, digits) => {
+        digit.addEventListener('input', (e) => {
+            if (e.target.value.length === 1 && index < digits.length - 1) {
+                digits[index + 1].focus();
+            }
+            
+            // Check if all digits are filled
+            const allFilled = Array.from(digits).every(d => d.value.length === 1);
+            if (allFilled) {
+                setTimeout(() => {
+                    document.getElementById('verifyBtn').click();
+                }, 300);
+            }
+        });
+        
+        digit.addEventListener('keydown', (e) => {
+            if (e.key === 'Backspace' && !e.target.value && index > 0) {
+                digits[index - 1].focus();
+            }
+        });
+    });
+</script>
+{% endblock %}

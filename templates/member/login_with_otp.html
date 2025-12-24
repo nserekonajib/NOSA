@@ -1,0 +1,340 @@
+{% extends "base.html" %}
+
+{% block title %}OTP Login - LUNSERK SACCO{% endblock %}
+
+{% block page_title %}OTP Login{% endblock %}
+{% block page_subtitle %}Login using One-Time Password{% endblock %}
+
+{% block breadcrumb %}
+<li>
+    <div class="flex items-center">
+        <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+        <a href="{{ url_for('memberauth.member_login') }}" class="text-sm font-medium text-gray-500 hover:text-blue-600">
+            Login
+        </a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+        <span class="text-sm font-medium text-gray-500">OTP Login</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto">
+    <div class="card-glass rounded-xl shadow-lg p-6">
+        <div class="text-center mb-8">
+            <div class="w-20 h-20 mx-auto bg-purple-100 rounded-full flex items-center justify-center mb-4">
+                <i class="fas fa-mobile-alt text-3xl text-purple-600"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-800">OTP Login</h2>
+            <p class="text-gray-600 mt-2">Receive a one-time password via email</p>
+        </div>
+
+        <form id="otpLoginForm">
+            <div class="space-y-6">
+                <!-- Email Field -->
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-envelope mr-2"></i>Email Address
+                    </label>
+                    <input type="email" id="email" name="email" 
+                           class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors"
+                           placeholder="Enter your registered email" required>
+                </div>
+
+                <!-- Send OTP Button -->
+                <button type="button" id="sendOtpBtn"
+                        class="w-full bg-purple-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-purple-700 transition-all duration-300">
+                    <i class="fas fa-paper-plane mr-2"></i>Send OTP
+                </button>
+
+                <!-- OTP Input (Initially Hidden) -->
+                <div id="otpSection" class="hidden space-y-4">
+                    <div>
+                        <label for="otp_code" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-key mr-2"></i>Enter OTP
+                        </label>
+                        <input type="text" id="otp_code" name="otp_code" 
+                               class="w-full px-4 py-3 text-center text-2xl tracking-widest rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-colors"
+                               placeholder="000000" maxlength="6" pattern="\d{6}">
+                        <p class="mt-2 text-sm text-gray-500 text-center">
+                            Enter the 6-digit code sent to your email
+                        </p>
+                    </div>
+
+                    <!-- Timer Display -->
+                    <div class="text-center">
+                        <p id="timer" class="text-sm font-medium text-gray-700">
+                            OTP valid for: <span id="countdown">10:00</span>
+                        </p>
+                        <button type="button" id="resendOtpBtn" 
+                                class="text-sm text-blue-600 hover:text-blue-800 disabled:text-gray-400 mt-2"
+                                disabled>
+                            Resend OTP (<span id="resendTimer">60</span>s)
+                        </button>
+                    </div>
+
+                    <!-- Hidden Member ID -->
+                    <input type="hidden" id="member_id" name="member_id">
+
+                    <!-- Verify OTP Button -->
+                    <button type="button" id="verifyOtpBtn"
+                            class="w-full btn-primary text-white font-semibold py-3 px-4 rounded-lg transition-all duration-300">
+                        <i class="fas fa-check-circle mr-2"></i>Verify & Login
+                    </button>
+                </div>
+
+                <!-- Back to Login -->
+                <div class="text-center pt-4 border-t border-gray-200">
+                    <a href="{{ url_for('memberauth.member_login') }}" 
+                       class="inline-flex items-center text-blue-600 hover:text-blue-800 transition-colors">
+                        <i class="fas fa-arrow-left mr-2"></i>
+                        Back to Regular Login
+                    </a>
+                </div>
+            </div>
+        </form>
+
+        <!-- OTP Instructions -->
+        <div class="mt-8 p-4 bg-blue-50 border border-blue-100 rounded-lg">
+            <div class="flex">
+                <i class="fas fa-info-circle text-blue-500 mt-1 mr-3"></i>
+                <div>
+                    <h4 class="font-medium text-blue-800">How OTP Login Works</h4>
+                    <ul class="text-sm text-blue-700 mt-2 space-y-1">
+                        <li>1. Enter your email address</li>
+                        <li>2. Click "Send OTP" to receive a 6-digit code</li>
+                        <li>3. Check your email for the OTP</li>
+                        <li>4. Enter the OTP and click "Verify & Login"</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        let countdownTimer;
+        let resendTimer;
+        let countdownSeconds = 600; // 10 minutes
+        let resendSeconds = 60;
+        
+        const emailInput = document.getElementById('email');
+        const sendOtpBtn = document.getElementById('sendOtpBtn');
+        const otpSection = document.getElementById('otpSection');
+        const otpInput = document.getElementById('otp_code');
+        const memberIdInput = document.getElementById('member_id');
+        const verifyOtpBtn = document.getElementById('verifyOtpBtn');
+        const resendOtpBtn = document.getElementById('resendOtpBtn');
+        const countdownDisplay = document.getElementById('countdown');
+        const resendTimerDisplay = document.getElementById('resendTimer');
+        
+        // Send OTP
+        sendOtpBtn.addEventListener('click', function() {
+            const email = emailInput.value.trim();
+            
+            if (!email) {
+                showAlert('Please enter your email address', 'error');
+                return;
+            }
+            
+            // Disable button and show loading
+            sendOtpBtn.disabled = true;
+            sendOtpBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Sending...';
+            
+            // Send request to server
+            fetch('{{ url_for("memberauth.send_otp") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    'email': email
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert('OTP sent to your email', 'success');
+                    
+                    // Show OTP section
+                    otpSection.classList.remove('hidden');
+                    
+                    // Set member ID if available
+                    if (data.member_id) {
+                        memberIdInput.value = data.member_id;
+                    }
+                    
+                    // Start timers
+                    startCountdown();
+                    startResendTimer();
+                    
+                    // Focus OTP input
+                    otpInput.focus();
+                } else {
+                    showAlert(data.message || 'Failed to send OTP', 'error');
+                    sendOtpBtn.disabled = false;
+                    sendOtpBtn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>Send OTP';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('Network error. Please try again.', 'error');
+                sendOtpBtn.disabled = false;
+                sendOtpBtn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>Send OTP';
+            });
+        });
+        
+        // Verify OTP
+        verifyOtpBtn.addEventListener('click', function() {
+            const otp = otpInput.value.trim();
+            const memberId = memberIdInput.value;
+            
+            if (!otp || otp.length !== 6) {
+                showAlert('Please enter a valid 6-digit OTP', 'error');
+                return;
+            }
+            
+            if (!memberId) {
+                showAlert('Session expired. Please start over.', 'error');
+                return;
+            }
+            
+            // Disable button and show loading
+            verifyOtpBtn.disabled = true;
+            verifyOtpBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Verifying...';
+            
+            // Send verification request
+            fetch('{{ url_for("memberauth.verify_otp") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    'member_id': memberId,
+                    'otp_code': otp
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Redirect to OTP login page
+                    window.location.href = '{{ url_for("memberauth.login_otp") }}?member_id=' + memberId;
+                } else {
+                    showAlert(data.message || 'Invalid OTP', 'error');
+                    verifyOtpBtn.disabled = false;
+                    verifyOtpBtn.innerHTML = '<i class="fas fa-check-circle mr-2"></i>Verify & Login';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('Network error. Please try again.', 'error');
+                verifyOtpBtn.disabled = false;
+                verifyOtpBtn.innerHTML = '<i class="fas fa-check-circle mr-2"></i>Verify & Login';
+            });
+        });
+        
+        // Resend OTP
+        resendOtpBtn.addEventListener('click', function() {
+            if (resendOtpBtn.disabled) return;
+            
+            sendOtpBtn.click();
+        });
+        
+        // Auto-submit on OTP complete
+        otpInput.addEventListener('input', function() {
+            if (this.value.length === 6) {
+                verifyOtpBtn.click();
+            }
+        });
+        
+        // Timer functions
+        function startCountdown() {
+            clearInterval(countdownTimer);
+            countdownSeconds = 600;
+            
+            countdownTimer = setInterval(function() {
+                countdownSeconds--;
+                
+                const minutes = Math.floor(countdownSeconds / 60);
+                const seconds = countdownSeconds % 60;
+                countdownDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                
+                if (countdownSeconds <= 0) {
+                    clearInterval(countdownTimer);
+                    showAlert('OTP has expired. Please request a new one.', 'error');
+                    otpSection.classList.add('hidden');
+                    sendOtpBtn.disabled = false;
+                    sendOtpBtn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>Send OTP';
+                }
+            }, 1000);
+        }
+        
+        function startResendTimer() {
+            clearInterval(resendTimer);
+            resendSeconds = 60;
+            resendOtpBtn.disabled = true;
+            
+            resendTimer = setInterval(function() {
+                resendSeconds--;
+                resendTimerDisplay.textContent = resendSeconds;
+                
+                if (resendSeconds <= 0) {
+                    clearInterval(resendTimer);
+                    resendOtpBtn.disabled = false;
+                    resendTimerDisplay.textContent = '0';
+                    resendOtpBtn.innerHTML = 'Resend OTP';
+                }
+            }, 1000);
+        }
+        
+        function showAlert(message, type) {
+            // Remove existing alerts
+            const existingAlerts = document.querySelectorAll('.custom-alert');
+            existingAlerts.forEach(alert => alert.remove());
+            
+            // Create alert
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `custom-alert fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg border-l-4 ${
+                type === 'success' ? 'bg-green-50 border-green-500 text-green-700' :
+                type === 'error' ? 'bg-red-50 border-red-500 text-red-700' :
+                'bg-blue-50 border-blue-500 text-blue-700'
+            }`;
+            alertDiv.innerHTML = `
+                <div class="flex items-center">
+                    <i class="fas ${
+                        type === 'success' ? 'fa-check-circle' :
+                        type === 'error' ? 'fa-exclamation-circle' :
+                        'fa-info-circle'
+                    } mr-3"></i>
+                    <span>${message}</span>
+                    <button class="ml-4 text-gray-400 hover:text-gray-600" onclick="this.parentElement.parentElement.remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            
+            document.body.appendChild(alertDiv);
+            
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                if (alertDiv.parentElement) {
+                    alertDiv.remove();
+                }
+            }, 5000);
+        }
+        
+        // Clean up timers on page unload
+        window.addEventListener('beforeunload', function() {
+            clearInterval(countdownTimer);
+            clearInterval(resendTimer);
+        });
+    });
+</script>
+{% endblock %}

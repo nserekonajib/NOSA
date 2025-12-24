@@ -1,0 +1,430 @@
+{% extends "adminbase.html" %}
+
+{% block title %}Loan Accounts - LUNSERK SACCO Admin{% endblock %}
+
+{% block breadcrumb %}Loans / Accounts{% endblock %}
+
+{% block page_title %}Loan Accounts{% endblock %}
+
+{% block page_subtitle %}Manage member loan accounts and credit limits{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header with Stats -->
+    <div class="card-glass rounded-2xl p-6">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+            <div>
+                <h2 class="text-lg font-bold text-gray-800">Loan Accounts</h2>
+                <p class="text-sm text-gray-600">{{ total_count }} account(s) found</p>
+            </div>
+            
+            <div class="flex gap-3">
+                <a href="{{ url_for('loans.create_loan_account') }}" 
+                   class="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all hover-lift">
+                    <i class="fas fa-plus mr-2"></i> Create Account
+                </a>
+            </div>
+        </div>
+        
+        <!-- Summary Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="bg-blue-50 p-4 rounded-xl">
+                <p class="text-sm text-gray-600">Total Balance</p>
+                <p class="text-xl font-bold text-gray-800">UGX {{ "{:,.0f}".format(total_balance) }}</p>
+            </div>
+            <div class="bg-green-50 p-4 rounded-xl">
+                <p class="text-sm text-gray-600">Total Credit Limit</p>
+                <p class="text-xl font-bold text-gray-800">UGX {{ "{:,.0f}".format(total_limit) }}</p>
+            </div>
+            <div class="bg-purple-50 p-4 rounded-xl">
+                <p class="text-sm text-gray-600">Total Available</p>
+                <p class="text-xl font-bold text-gray-800">UGX {{ "{:,.0f}".format(total_available) }}</p>
+            </div>
+        </div>
+        
+        <!-- Search and Filters -->
+        <div class="flex flex-col sm:flex-row gap-3">
+            <div class="relative flex-1">
+                <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                <input type="text" id="searchInput" placeholder="Search accounts..." 
+                       value="{{ search }}"
+                       class="pl-10 pr-4 py-2 border border-gray-300 rounded-xl w-full focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            </div>
+            
+            <select id="statusFilter" 
+                    class="px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <option value="">All Status</option>
+                <option value="active" {% if status == 'active' %}selected{% endif %}>Active</option>
+                <option value="suspended" {% if status == 'suspended' %}selected{% endif %}>Suspended</option>
+                <option value="closed" {% if status == 'closed' %}selected{% endif %}>Closed</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Accounts Table -->
+    <div class="card-glass rounded-2xl overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Member</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Account Details</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Balance</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for account in accounts %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0">
+                                    <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                        <i class="fas fa-user text-blue-600"></i>
+                                    </div>
+                                </div>
+                                <div class="ml-4">
+                                    <div class="text-sm font-medium text-gray-900">
+                                        {{ account.members.full_name }}
+                                    </div>
+                                    <div class="text-sm text-gray-500">
+                                        {{ account.members.member_number }}
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm">
+                                <div class="font-medium text-gray-900">
+                                    {{ account.account_number }}
+                                </div>
+                                <div class="text-gray-500">
+                                    Limit: UGX {{ "{:,.0f}".format(account.credit_limit|float) }}
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm">
+                                <div class="font-bold text-gray-900">
+                                    UGX {{ "{:,.0f}".format(account.current_balance|float) }}
+                                </div>
+                                <div class="text-xs text-gray-500">
+                                    Available: UGX {{ "{:,.0f}".format(account.available_limit|float) }}
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium
+                                {% if account.status == 'active' %}bg-green-100 text-green-800
+                                {% elif account.status == 'suspended' %}bg-yellow-100 text-yellow-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {% if account.status == 'active' %}
+                                <i class="fas fa-check-circle mr-1"></i>
+                                {% elif account.status == 'suspended' %}
+                                <i class="fas fa-pause-circle mr-1"></i>
+                                {% else %}
+                                <i class="fas fa-times-circle mr-1"></i>
+                                {% endif %}
+                                {{ account.status|title }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-sm font-medium">
+                            <div class="flex items-center space-x-2">
+                                <a href="{{ url_for('loans.loan_account_details', account_id=account.id) }}" 
+                                   class="text-blue-600 hover:text-blue-900">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <button onclick="updateCreditLimit('{{ account.id }}', '{{ account.credit_limit }}')" 
+                                        class="text-green-600 hover:text-green-900">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <div class="dropdown relative">
+                                    <button class="text-gray-500 hover:text-gray-700">
+                                        <i class="fas fa-ellipsis-v"></i>
+                                    </button>
+                                    <div class="dropdown-content absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 z-10 hidden">
+                                        {% if account.status != 'suspended' %}
+                                        <button onclick="updateAccountStatus('{{ account.id }}', 'suspended')" 
+                                                class="block w-full text-left px-4 py-3 text-sm text-yellow-600 hover:bg-yellow-50">
+                                            <i class="fas fa-pause-circle mr-2"></i> Suspend
+                                        </button>
+                                        {% endif %}
+                                        {% if account.status != 'active' %}
+                                        <button onclick="updateAccountStatus('{{ account.id }}', 'active')" 
+                                                class="block w-full text-left px-4 py-3 text-sm text-green-600 hover:bg-green-50">
+                                            <i class="fas fa-play-circle mr-2"></i> Activate
+                                        </button>
+                                        {% endif %}
+                                        {% if account.status != 'closed' and account.current_balance|float == 0 %}
+                                        <button onclick="updateAccountStatus('{{ account.id }}', 'closed')" 
+                                                class="block w-full text-left px-4 py-3 text-sm text-gray-600 hover:bg-gray-50">
+                                            <i class="fas fa-times-circle mr-2"></i> Close
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="px-6 py-12 text-center">
+                            <div class="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                                <i class="fas fa-credit-card text-gray-400 text-2xl"></i>
+                            </div>
+                            <h3 class="text-lg font-bold text-gray-700 mb-2">No Loan Accounts</h3>
+                            <p class="text-gray-600">No loan accounts found matching your criteria</p>
+                            <div class="mt-4">
+                                <a href="{{ url_for('loans.create_loan_account') }}" 
+                                   class="inline-block px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700">
+                                    <i class="fas fa-plus mr-2"></i> Create Account
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Update Credit Limit Modal -->
+<div id="creditLimitModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-2xl p-6 max-w-md w-full mx-4">
+        <h3 class="text-lg font-bold text-gray-800 mb-4">Update Credit Limit</h3>
+        <form id="creditLimitForm">
+            <input type="hidden" id="accountId" name="account_id">
+            <div class="mb-4">
+                <label for="credit_limit" class="block text-sm font-medium text-gray-700 mb-2">
+                    New Credit Limit (UGX) *
+                </label>
+                <input type="number" id="credit_limit" name="credit_limit" required step="1000"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                       placeholder="Enter new credit limit">
+            </div>
+            <div class="flex justify-end space-x-3">
+                <button type="button" onclick="closeModal('creditLimitModal')" 
+                        class="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50">
+                    Cancel
+                </button>
+                <button type="submit" 
+                        class="px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700">
+                    Update Limit
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Update Status Modal -->
+<div id="statusModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-2xl p-6 max-w-md w-full mx-4">
+        <h3 class="text-lg font-bold text-gray-800 mb-4" id="statusModalTitle">Update Account Status</h3>
+        <form id="statusForm">
+            <input type="hidden" id="statusAccountId" name="account_id">
+            <input type="hidden" id="newStatus" name="status">
+            <p class="text-gray-600 mb-6" id="statusModalMessage">Are you sure you want to update the account status?</p>
+            <div class="flex justify-end space-x-3">
+                <button type="button" onclick="closeModal('statusModal')" 
+                        class="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50">
+                    Cancel
+                </button>
+                <button type="submit" id="statusSubmitBtn"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700">
+                    Update Status
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Filter accounts
+    document.getElementById('searchInput').addEventListener('keyup', function(e) {
+        if (e.key === 'Enter') {
+            const search = this.value;
+            const status = document.getElementById('statusFilter').value;
+            let url = '{{ url_for("loans.loan_accounts") }}';
+            const params = new URLSearchParams();
+            
+            if (search) params.append('search', search);
+            if (status) params.append('status', status);
+            
+            if (params.toString()) {
+                url += '?' + params.toString();
+            }
+            
+            window.location.href = url;
+        }
+    });
+    
+    document.getElementById('statusFilter').addEventListener('change', function() {
+        const search = document.getElementById('searchInput').value;
+        const status = this.value;
+        let url = '{{ url_for("loans.loan_accounts") }}';
+        const params = new URLSearchParams();
+        
+        if (search) params.append('search', search);
+        if (status) params.append('status', status);
+        
+        if (params.toString()) {
+            url += '?' + params.toString();
+        }
+        
+        window.location.href = url;
+    });
+    
+    // Modal functions
+    function openModal(modalId) {
+        document.getElementById(modalId).classList.remove('hidden');
+    }
+    
+    function closeModal(modalId) {
+        document.getElementById(modalId).classList.add('hidden');
+    }
+    
+    // Update credit limit
+    function updateCreditLimit(accountId, currentLimit) {
+        document.getElementById('accountId').value = accountId;
+        document.getElementById('credit_limit').value = parseFloat(currentLimit);
+        openModal('creditLimitModal');
+    }
+    
+    // Update account status
+    function updateAccountStatus(accountId, status) {
+        document.getElementById('statusAccountId').value = accountId;
+        document.getElementById('newStatus').value = status;
+        
+        const statusText = status.charAt(0).toUpperCase() + status.slice(1);
+        document.getElementById('statusModalTitle').textContent = `${statusText} Account`;
+        document.getElementById('statusModalMessage').textContent = `Are you sure you want to ${status} this account?`;
+        document.getElementById('statusSubmitBtn').textContent = `${statusText} Account`;
+        
+        // Set button color based on status
+        const btn = document.getElementById('statusSubmitBtn');
+        btn.className = 'px-4 py-2 text-white rounded-xl hover:opacity-90 ';
+        if (status === 'active') btn.classList.add('bg-green-600');
+        else if (status === 'suspended') btn.classList.add('bg-yellow-600');
+        else btn.classList.add('bg-gray-600');
+        
+        openModal('statusModal');
+    }
+    
+    // Form submissions
+    document.getElementById('creditLimitForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const accountId = document.getElementById('accountId').value;
+        const creditLimit = document.getElementById('credit_limit').value;
+        
+        fetch(`/admin/loans/accounts/${accountId}/update-limit`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `credit_limit=${encodeURIComponent(creditLimit)}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                closeModal('creditLimitModal');
+                showSuccessMessage(data.message);
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Error updating credit limit');
+        });
+    });
+    
+    document.getElementById('statusForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const accountId = document.getElementById('statusAccountId').value;
+        const status = document.getElementById('newStatus').value;
+        
+        fetch(`/admin/loans/accounts/${accountId}/update-status`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `status=${encodeURIComponent(status)}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                closeModal('statusModal');
+                showSuccessMessage(data.message);
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Error updating account status');
+        });
+    });
+    
+    // Dropdown toggle
+    document.querySelectorAll('.dropdown button').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const dropdown = this.parentElement.querySelector('.dropdown-content');
+            dropdown.classList.toggle('hidden');
+        });
+    });
+    
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', function() {
+        document.querySelectorAll('.dropdown-content').forEach(dropdown => {
+            dropdown.classList.add('hidden');
+        });
+    });
+    
+    // Success message
+    function showSuccessMessage(message) {
+        const toast = document.createElement('div');
+        toast.className = 'fixed top-4 right-4 z-50 px-6 py-3 bg-green-50 text-green-700 rounded-xl shadow-lg border-l-4 border-green-500';
+        toast.innerHTML = `
+            <div class="flex items-center">
+                <i class="fas fa-check-circle mr-3 text-lg"></i>
+                <span>${message}</span>
+            </div>
+        `;
+        
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+</script>
+
+<style>
+    table {
+        min-width: 800px;
+    }
+    
+    @media (min-width: 768px) {
+        table {
+            min-width: 0;
+        }
+    }
+    
+    .hover-lift {
+        transition: transform 0.2s ease-in-out;
+    }
+    
+    .hover-lift:hover {
+        transform: translateY(-2px);
+    }
+    
+    .dropdown-content {
+        animation: fadeIn 0.2s ease-in-out;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
+{% endblock %}

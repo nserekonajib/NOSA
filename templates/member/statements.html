@@ -1,0 +1,463 @@
+{% extends "base.html" %}
+
+{% block title %}Account Statements - LUNSERK SACCO{% endblock %}
+
+{% block page_title %}Account Statements{% endblock %}
+
+{% block page_subtitle %}View and download your account statements{% endblock %}
+
+{% block breadcrumb %}
+    <li class="inline-flex items-center">
+        <a href="{{ url_for('member.dashboard') }}" class="inline-flex items-center text-sm text-gray-700 hover:text-blue-600">
+            <i class="fas fa-home mr-2"></i>
+            Dashboard
+        </a>
+    </li>
+    <li aria-hidden="true">
+        <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+    </li>
+    <li class="inline-flex items-center">
+        <span class="text-gray-500">Statements</span>
+    </li>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Statement Generator -->
+    <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+        <h3 class="text-xl font-bold text-gray-800 mb-6">Generate Statement</h3>
+        
+        <form id="statementForm" method="POST" action="{{ url_for('member.download_statement') }}" target="_blank">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Statement Type
+                    </label>
+                    <select name="statement_type" 
+                            id="statementType"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="combined">Combined Statement</option>
+                        <option value="savings">Savings Only</option>
+                        <option value="loan">Loan Only</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Start Date
+                    </label>
+                    <input type="date" 
+                           name="start_date" 
+                           id="startDate"
+                           value="{{ start_date }}"
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        End Date
+                    </label>
+                    <input type="date" 
+                           name="end_date" 
+                           id="endDate"
+                           value="{{ end_date }}"
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="flex items-end">
+                    <button type="button" 
+                            id="previewBtn"
+                            class="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-eye mr-2"></i>
+                        Preview
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Preview Section -->
+            <div id="previewSection" class="hidden mt-6 p-6 bg-gray-50 rounded-lg border border-gray-200">
+                <h4 class="text-lg font-bold text-gray-800 mb-4">Statement Preview</h4>
+                <div id="previewContent">
+                    <!-- Preview content will be loaded here -->
+                </div>
+                <div class="mt-6 flex justify-end space-x-4">
+                    <button type="button" 
+                            onclick="closePreview()"
+                            class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit" 
+                            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                        <i class="fas fa-download mr-2"></i>
+                        Download PDF
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Recent Transactions Summary -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <!-- Savings Summary -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <h3 class="text-xl font-bold text-gray-800 mb-6">Savings Summary</h3>
+            <div class="space-y-4">
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600">Account Number</span>
+                    <span class="font-semibold">{{ savings_account.account_number|default('N/A') }}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600">Current Balance</span>
+                    <span class="font-bold text-blue-600">
+                        UGX {{ "{:,.0f}".format(savings_account.current_balance|float) if savings_account.current_balance else '0' }}
+                    </span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600">Total Deposits (Period)</span>
+                    <span class="font-semibold text-green-600">
+                        UGX {{ "{:,.0f}".format(total_savings_deposits|float) }}
+                    </span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600">Total Withdrawals (Period)</span>
+                    <span class="font-semibold text-red-600">
+                        UGX {{ "{:,.0f}".format(total_savings_withdrawals|float) }}
+                    </span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600">Number of Transactions</span>
+                    <span class="font-semibold">{{ savings_transactions|length }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loan Summary -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <h3 class="text-xl font-bold text-gray-800 mb-6">Loan Summary</h3>
+            <div class="space-y-4">
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600">Account Number</span>
+                    <span class="font-semibold">{{ loan_account.account_number|default('N/A') }}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600">Current Balance</span>
+                    <span class="font-bold text-red-600">
+                        UGX {{ "{:,.0f}".format(loan_account.current_balance|float) if loan_account.current_balance else '0' }}
+                    </span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600">Total Repayments (Period)</span>
+                    <span class="font-semibold text-green-600">
+                        UGX {{ "{:,.0f}".format(total_loan_repayments|float) }}
+                    </span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600">Total Disbursements (Period)</span>
+                    <span class="font-semibold text-blue-600">
+                        UGX {{ "{:,.0f}".format(total_loan_disbursements|float) }}
+                    </span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600">Number of Transactions</span>
+                    <span class="font-semibold">{{ loan_transactions|length }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Transactions -->
+    <div class="bg-white rounded-xl shadow-lg p-6">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold text-gray-800">Recent Transactions ({{ start_date }} to {{ end_date }})</h3>
+            <div class="text-sm text-gray-600">
+                Showing {{ savings_transactions|length + loan_transactions|length }} transactions
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="mb-6 border-b border-gray-200">
+            <div class="flex space-x-4">
+                <button type="button" 
+                        id="allTab"
+                        class="px-4 py-2 border-b-2 border-blue-600 text-blue-600 font-medium"
+                        onclick="showTab('all')">
+                    All Transactions
+                </button>
+                <button type="button" 
+                        id="savingsTab"
+                        class="px-4 py-2 border-b-2 border-transparent text-gray-600 hover:text-blue-600"
+                        onclick="showTab('savings')">
+                    Savings
+                </button>
+                <button type="button" 
+                        id="loanTab"
+                        class="px-4 py-2 border-b-2 border-transparent text-gray-600 hover:text-blue-600"
+                        onclick="showTab('loan')">
+                    Loans
+                </button>
+                <button type="button" 
+                        id="repaymentsTab"
+                        class="px-4 py-2 border-b-2 border-transparent text-gray-600 hover:text-blue-600"
+                        onclick="showTab('repayments')">
+                    Repayments
+                </button>
+            </div>
+        </div>
+
+        <!-- Transactions Content -->
+        <div id="allContent" class="tab-content">
+            <div class="space-y-4">
+                {% for transaction in (savings_transactions + loan_transactions)|sort(attribute='created_at', reverse=True) %}
+                <div class="flex items-center p-4 bg-gray-50 rounded-lg">
+                    <div class="{% if transaction.transaction_type == 'deposit' %}bg-green-100 text-green-600{% elif transaction.transaction_type == 'withdrawal' %}bg-red-100 text-red-600{% elif transaction.transaction_type == 'repayment' %}bg-green-100 text-green-600{% else %}bg-blue-100 text-blue-600{% endif %} p-3 rounded-full mr-4">
+                        <i class="fas 
+                            {% if transaction.transaction_type == 'deposit' %}fa-arrow-down
+                            {% elif transaction.transaction_type == 'withdrawal' %}fa-arrow-up
+                            {% elif transaction.transaction_type == 'repayment' %}fa-credit-card
+                            {% else %}fa-hand-holding-usd{% endif %}"></i>
+                    </div>
+                    <div class="flex-1">
+                        <p class="font-medium">{{ transaction.transaction_type|title }}</p>
+                        <p class="text-sm text-gray-600">{{ transaction.description|default('Transaction')|truncate(40) }}</p>
+                        <p class="text-xs text-gray-500 mt-1">
+                            {{ transaction.created_at[:10] if transaction.created_at else 'N/A' }}
+                            {% if 'savings_accounts' in transaction %}
+                            | {{ transaction.savings_accounts.account_number if transaction.savings_accounts else '' }}
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-bold {% if transaction.transaction_type in ['deposit', 'repayment'] %}text-green-600{% else %}text-red-600{% endif %}">
+                            {% if transaction.transaction_type in ['deposit', 'repayment'] %}+{% else %}-{% endif %}
+                            UGX {{ "{:,.0f}".format(transaction.amount|float) if transaction.amount else '0' }}
+                        </p>
+                        <p class="text-sm text-gray-600">
+                            Ref: {{ transaction.reference_number[:8] if transaction.reference_number else 'N/A' }}
+                        </p>
+                    </div>
+                </div>
+                {% endfor %}
+                
+                {% if not savings_transactions and not loan_transactions %}
+                <div class="text-center py-8 text-gray-500">
+                    <i class="fas fa-exchange-alt text-4xl mb-3 opacity-20"></i>
+                    <p>No transactions found for this period</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div id="savingsContent" class="tab-content hidden">
+            <div class="space-y-4">
+                {% for transaction in savings_transactions %}
+                <div class="flex items-center p-4 bg-gray-50 rounded-lg">
+                    <div class="{% if transaction.transaction_type == 'deposit' %}bg-green-100 text-green-600{% else %}bg-red-100 text-red-600{% endif %} p-3 rounded-full mr-4">
+                        <i class="fas {% if transaction.transaction_type == 'deposit' %}fa-arrow-down{% else %}fa-arrow-up{% endif %}"></i>
+                    </div>
+                    <div class="flex-1">
+                        <p class="font-medium">{{ transaction.transaction_type|title }}</p>
+                        <p class="text-sm text-gray-600">{{ transaction.description|default('Transaction')|truncate(40) }}</p>
+                        <p class="text-xs text-gray-500 mt-1">{{ transaction.created_at[:10] if transaction.created_at else 'N/A' }}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-bold {% if transaction.transaction_type == 'deposit' %}text-green-600{% else %}text-red-600{% endif %}">
+                            {% if transaction.transaction_type == 'deposit' %}+{% else %}-{% endif %}
+                            UGX {{ "{:,.0f}".format(transaction.amount|float) if transaction.amount else '0' }}
+                        </p>
+                        <p class="text-sm text-gray-600">
+                            Ref: {{ transaction.reference_number[:8] if transaction.reference_number else 'N/A' }}
+                        </p>
+                    </div>
+                </div>
+                {% endfor %}
+                
+                {% if not savings_transactions %}
+                <div class="text-center py-8 text-gray-500">
+                    <i class="fas fa-piggy-bank text-4xl mb-3 opacity-20"></i>
+                    <p>No savings transactions found</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div id="loanContent" class="tab-content hidden">
+            <div class="space-y-4">
+                {% for transaction in loan_transactions %}
+                <div class="flex items-center p-4 bg-gray-50 rounded-lg">
+                    <div class="{% if transaction.transaction_type == 'repayment' %}bg-green-100 text-green-600{% else %}bg-blue-100 text-blue-600{% endif %} p-3 rounded-full mr-4">
+                        <i class="fas {% if transaction.transaction_type == 'repayment' %}fa-credit-card{% else %}fa-hand-holding-usd{% endif %}"></i>
+                    </div>
+                    <div class="flex-1">
+                        <p class="font-medium">{{ transaction.transaction_type|title }}</p>
+                        <p class="text-sm text-gray-600">{{ transaction.description|default('Transaction')|truncate(40) }}</p>
+                        <p class="text-xs text-gray-500 mt-1">{{ transaction.created_at[:10] if transaction.created_at else 'N/A' }}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-bold {% if transaction.transaction_type == 'repayment' %}text-green-600{% else %}text-red-600{% endif %}">
+                            {% if transaction.transaction_type == 'repayment' %}+{% else %}-{% endif %}
+                            UGX {{ "{:,.0f}".format(transaction.amount|float) if transaction.amount else '0' }}
+                        </p>
+                        <p class="text-sm text-gray-600">
+                            Ref: {{ transaction.reference_number[:8] if transaction.reference_number else 'N/A' }}
+                        </p>
+                    </div>
+                </div>
+                {% endfor %}
+                
+                {% if not loan_transactions %}
+                <div class="text-center py-8 text-gray-500">
+                    <i class="fas fa-hand-holding-usd text-4xl mb-3 opacity-20"></i>
+                    <p>No loan transactions found</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div id="repaymentsContent" class="tab-content hidden">
+            <div class="space-y-4">
+                {% for repayment in repayments %}
+                <div class="flex items-center p-4 bg-gray-50 rounded-lg">
+                    <div class="bg-green-100 text-green-600 p-3 rounded-full mr-4">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <div class="flex-1">
+                        <p class="font-medium">Installment #{{ repayment.installment_number }}</p>
+                        <p class="text-sm text-gray-600">
+                            {% if repayment.loan_applications and repayment.loan_applications.purpose %}
+                            {{ repayment.loan_applications.purpose|truncate(40) }}
+                            {% else %}
+                            Loan Repayment
+                            {% endif %}
+                        </p>
+                        <p class="text-xs text-gray-500 mt-1">
+                            Due: {{ repayment.due_date }} | Paid: {{ repayment.paid_date if repayment.paid_date else 'Pending' }}
+                        </p>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-bold text-green-600">
+                            UGX {{ "{:,.0f}".format(repayment.paid_amount|float) if repayment.paid_amount else '0' }}
+                        </p>
+                        <p class="text-sm text-gray-600">
+                            of UGX {{ "{:,.0f}".format(repayment.due_amount|float) }}
+                        </p>
+                        <p class="text-xs {% if repayment.status == 'paid' %}text-green-600{% elif repayment.status == 'partial' %}text-yellow-600{% else %}text-red-600{% endif %}">
+                            {{ repayment.status|title }}
+                        </p>
+                    </div>
+                </div>
+                {% endfor %}
+                
+                {% if not repayments %}
+                <div class="text-center py-8 text-gray-500">
+                    <i class="fas fa-calendar-alt text-4xl mb-3 opacity-20"></i>
+                    <p>No repayments found</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Modal -->
+<div id="loadingModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-xl p-6 max-w-sm w-full mx-4 text-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <p class="text-gray-700">Generating preview...</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function showTab(tabName) {
+        // Hide all tab contents
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.add('hidden');
+        });
+        
+        // Remove active class from all tabs
+        document.querySelectorAll('[id$="Tab"]').forEach(tab => {
+            tab.classList.remove('border-blue-600', 'text-blue-600');
+            tab.classList.add('border-transparent', 'text-gray-600', 'hover:text-blue-600');
+        });
+        
+        // Show selected tab content
+        document.getElementById(tabName + 'Content').classList.remove('hidden');
+        
+        // Add active class to selected tab
+        document.getElementById(tabName + 'Tab').classList.add('border-blue-600', 'text-blue-600');
+        document.getElementById(tabName + 'Tab').classList.remove('border-transparent', 'text-gray-600', 'hover:text-blue-600');
+    }
+
+    function closePreview() {
+        document.getElementById('previewSection').classList.add('hidden');
+    }
+
+    // Preview statement
+    document.getElementById('previewBtn').addEventListener('click', function() {
+        const statementType = document.getElementById('statementType').value;
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        
+        if (!startDate || !endDate) {
+            alert('Please select both start and end dates');
+            return;
+        }
+        
+        // Show loading
+        document.getElementById('loadingModal').classList.remove('hidden');
+        
+        // Make AJAX request
+        fetch('{{ url_for("member.preview_statement") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+                'statement_type': statementType,
+                'start_date': startDate,
+                'end_date': endDate
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('loadingModal').classList.add('hidden');
+            
+            if (data.success) {
+                document.getElementById('previewContent').innerHTML = data.html;
+                document.getElementById('previewSection').classList.remove('hidden');
+                
+                // Update form hidden fields
+                document.querySelector('input[name="statement_type"]').value = statementType;
+                document.querySelector('input[name="start_date"]').value = startDate;
+                document.querySelector('input[name="end_date"]').value = endDate;
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            document.getElementById('loadingModal').classList.add('hidden');
+            alert('Error loading preview');
+            console.error('Error:', error);
+        });
+    });
+
+    // Form validation
+    document.getElementById('statementForm').addEventListener('submit', function(e) {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        
+        if (!startDate || !endDate) {
+            e.preventDefault();
+            alert('Please select both start and end dates');
+            return false;
+        }
+        
+        if (new Date(startDate) > new Date(endDate)) {
+            e.preventDefault();
+            alert('Start date must be before end date');
+            return false;
+        }
+    });
+
+    // Initialize with all tab active
+    showTab('all');
+</script>
+{% endblock %}

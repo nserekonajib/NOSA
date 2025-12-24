@@ -1,0 +1,483 @@
+{% extends "adminbase.html" %}
+
+{% block title %}Members Shares - Admin Panel{% endblock %}
+
+{% block page_title %}Members Shares{% endblock %}
+{% block page_subtitle %}View and manage member share holdings{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Search and Actions Bar -->
+    <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
+            <!-- Search Form -->
+            <form method="GET" action="{{ url_for('shares_admin.members_shares') }}" class="w-full md:w-auto">
+                <div class="flex space-x-2">
+                    <input type="text" 
+                           name="search" 
+                           value="{{ search }}"
+                           placeholder="Search by name, member number, or email..."
+                           class="w-full md:w-96 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <button type="submit" 
+                            class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        Search
+                    </button>
+                    {% if search %}
+                    <a href="{{ url_for('shares_admin.members_shares') }}" 
+                       class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">
+                        Clear
+                    </a>
+                    {% endif %}
+                </div>
+            </form>
+            
+            <!-- Manual Share Purchase Button -->
+            <button onclick="openManualPurchaseModal()"
+                    class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center">
+                <i class="fas fa-plus-circle mr-2"></i>
+                Manual Share Purchase
+            </button>
+        </div>
+        
+        <!-- Summary Stats -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-gray-200">
+            <div class="text-center">
+                <p class="text-2xl font-bold text-gray-800">{{ total_members }}</p>
+                <p class="text-sm text-gray-600">Total Members</p>
+            </div>
+            <div class="text-center">
+                <p class="text-2xl font-bold text-blue-600">
+                    {{ members|selectattr('shares_owned', 'gt', 0)|list|length }}
+                </p>
+                <p class="text-sm text-gray-600">Members with Shares</p>
+            </div>
+            <div class="text-center">
+                <p class="text-2xl font-bold text-green-600">
+                    {{ total_members - members|selectattr('shares_owned', 'gt', 0)|list|length }}
+                </p>
+                <p class="text-sm text-gray-600">Members without Shares</p>
+            </div>
+            <div class="text-center">
+                <p class="text-2xl font-bold text-purple-600">
+                    {{ current_share_value|float }}
+                </p>
+                <p class="text-sm text-gray-600">Current Share Price (UGX)</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Members Table -->
+    <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+            <h3 class="text-lg font-bold text-gray-800">Members Share Holdings</h3>
+            <span class="text-sm text-gray-500">
+                Showing {{ members|length }} of {{ total_members }} members
+            </span>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="bg-gray-50">
+                        <th class="py-3 px-4 text-left text-sm font-medium text-gray-700">Member</th>
+                        <th class="py-3 px-4 text-left text-sm font-medium text-gray-700">Member No.</th>
+                        <th class="py-3 px-4 text-left text-sm font-medium text-gray-700">Contact</th>
+                        <th class="py-3 px-4 text-left text-sm font-medium text-gray-700">Shares Owned</th>
+                        <th class="py-3 px-4 text-left text-sm font-medium text-gray-700">Share Value</th>
+                        <th class="py-3 px-4 text-left text-sm font-medium text-gray-700">Status</th>
+                        <th class="py-3 px-4 text-left text-sm font-medium text-gray-700">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% if members|length > 0 %}
+                        {% for member in members %}
+                        <tr class="hover:bg-gray-50">
+                            <!-- Member Name -->
+                            <td class="py-3 px-4">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                                        <i class="fas fa-user text-blue-600"></i>
+                                    </div>
+                                    <div>
+                                        <p class="font-medium text-gray-900">{{ member.full_name }}</p>
+                                        <p class="text-xs text-gray-500">Joined: {{ member.created_at[:10] }}</p>
+                                    </div>
+                                </div>
+                            </td>
+                            
+                            <!-- Member Number -->
+                            <td class="py-3 px-4 text-sm">
+                                <code class="bg-gray-100 px-2 py-1 rounded text-gray-800">
+                                    {{ member.member_number }}
+                                </code>
+                            </td>
+                            
+                            <!-- Contact -->
+                            <td class="py-3 px-4 text-sm">
+                                <div class="text-gray-900">{{ member.email }}</div>
+                                <div class="text-gray-600">{{ member.phone_number or 'No phone' }}</div>
+                            </td>
+                            
+                            <!-- Shares Owned -->
+                            <td class="py-3 px-4">
+                                <div class="text-center">
+                                    <p class="text-lg font-bold 
+                                        {% if member.shares_owned > 0 %}text-green-600{% else %}text-gray-400{% endif %}">
+                                        {{ member.shares_owned|int }}
+                                    </p>
+                                    {% if member.shares_owned > 0 %}
+                                    <p class="text-xs text-gray-500">shares</p>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            
+                            <!-- Share Value -->
+                            <td class="py-3 px-4 text-sm">
+                                {% if member.shares_owned > 0 %}
+                                <div class="font-bold text-gray-900">
+                                    UGX {{ "{:,.0f}".format(member.shares_owned|int * current_share_value|float) }}
+                                </div>
+                                <div class="text-xs text-gray-500">
+                                    UGX {{ "{:,.0f}".format(current_share_value|float) }}/share
+                                </div>
+                                {% else %}
+                                <span class="text-gray-400">No shares</span>
+                                {% endif %}
+                            </td>
+                            
+                            <!-- Status -->
+                            <td class="py-3 px-4 text-sm">
+                                <span class="px-2 py-1 rounded-full text-xs font-medium 
+                                    {% if member.account_status == 'active' %}bg-green-100 text-green-800
+                                    {% elif member.account_status == 'suspended' %}bg-red-100 text-red-800
+                                    {% elif member.account_status == 'pending' %}bg-yellow-100 text-yellow-800
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {{ member.account_status|title }}
+                                </span>
+                            </td>
+                            
+                            <!-- Actions -->
+                            <td class="py-3 px-4 text-sm">
+                                <div class="flex space-x-2">
+                                    <a href="{{ url_for('shares_admin.member_shares_detail', member_id=member.id) }}"
+                                       class="text-blue-600 hover:text-blue-800"
+                                       title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    {% if member.account_status == 'active' %}
+                                    <button onclick="quickPurchase('{{ member.id }}', '{{ member.full_name }}', '{{ member.member_number }}')"
+                                            class="text-green-600 hover:text-green-800"
+                                            title="Quick Purchase">
+                                        <i class="fas fa-shopping-cart"></i>
+                                    </button>
+                                    {% endif %}
+                                    <a href="mailto:{{ member.email }}"
+                                       class="text-purple-600 hover:text-purple-800"
+                                       title="Send Email">
+                                        <i class="fas fa-envelope"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="7" class="py-8 text-center text-gray-500">
+                                <i class="fas fa-users text-4xl mb-3 opacity-20"></i>
+                                <p>No members found</p>
+                                {% if search %}
+                                <p class="text-sm mt-2">Try a different search term</p>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        {% if total_pages > 1 %}
+        <div class="px-6 py-4 border-t border-gray-200">
+            <div class="flex justify-between items-center">
+                <div class="text-sm text-gray-500">
+                    Page {{ page }} of {{ total_pages }}
+                </div>
+                <div class="flex space-x-2">
+                    {% if page > 1 %}
+                    <a href="?page={{ page - 1 }}&search={{ search }}"
+                       class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
+                        Previous
+                    </a>
+                    {% endif %}
+                    
+                    {% for p in range(1, total_pages + 1) %}
+                        {% if p == page %}
+                        <span class="px-4 py-2 bg-blue-600 text-white rounded-lg">
+                            {{ p }}
+                        </span>
+                        {% elif p >= page - 2 and p <= page + 2 %}
+                        <a href="?page={{ p }}&search={{ search }}"
+                           class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
+                            {{ p }}
+                        </a>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page < total_pages %}
+                    <a href="?page={{ page + 1 }}&search={{ search }}"
+                       class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
+                        Next
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Manual Purchase Modal -->
+<div id="manualPurchaseModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-xl bg-white">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold text-gray-800">Manual Share Purchase</h3>
+            <button onclick="closeManualPurchaseModal()" 
+                    class="text-gray-400 hover:text-gray-600 text-2xl">
+                &times;
+            </button>
+        </div>
+        
+        <form id="manualPurchaseForm" method="POST" action="{{ url_for('shares_admin.manual_share_purchase') }}">
+            <div class="space-y-4">
+                <!-- Member Selection -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Select Member *
+                    </label>
+                    <select id="memberSelect" 
+                            name="member_id" 
+                            required
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Select a member...</option>
+                        {% for member in members %}
+                        <option value="{{ member.id }}">
+                            {{ member.full_name }} ({{ member.member_number }})
+                            {% if member.shares_owned > 0 %} - {{ member.shares_owned }} shares{% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- Number of Shares -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Number of Shares *
+                    </label>
+                    <input type="number" 
+                           id="sharesInput"
+                           name="shares" 
+                           min="1"
+                           required
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                           placeholder="Enter number of shares">
+                </div>
+                
+                <!-- Price per Share (Read-only) -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Price per Share
+                    </label>
+                    <div class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50">
+                        UGX {{ "{:,.0f}".format(current_share_value|float) }}
+                    </div>
+                    <input type="hidden" 
+                           id="pricePerShare" 
+                           value="{{ current_share_value|float }}">
+                </div>
+                
+                <!-- Total Amount (Calculated) -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Total Amount
+                    </label>
+                    <div id="totalAmountDisplay" 
+                         class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 font-bold">
+                        UGX 0
+                    </div>
+                </div>
+                
+                <!-- Payment Method -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Payment Method *
+                    </label>
+                    <select name="payment_method" 
+                            required
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="cash">Cash</option>
+                        <option value="bank_transfer">Bank Transfer</option>
+                        <option value="mobile_money">Mobile Money</option>
+                        <option value="check">Check</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                
+                <!-- Reference -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Reference Number (Optional)
+                    </label>
+                    <input type="text" 
+                           name="reference"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                           placeholder="e.g., Receipt number, transaction ID">
+                </div>
+                
+                <!-- Notes -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Notes (Optional)
+                    </label>
+                    <textarea name="notes" 
+                              rows="3"
+                              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              placeholder="Any additional notes..."></textarea>
+                </div>
+            </div>
+            
+            <div class="mt-6 pt-4 border-t border-gray-200 flex justify-end space-x-3">
+                <button type="button"
+                        onclick="closeManualPurchaseModal()"
+                        class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
+                    Cancel
+                </button>
+                <button type="submit" 
+                        class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                    Record Purchase
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Quick Purchase Modal -->
+<div id="quickPurchaseModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-xl bg-white">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold text-gray-800">Quick Share Purchase</h3>
+            <button onclick="closeQuickPurchaseModal()" 
+                    class="text-gray-400 hover:text-gray-600 text-2xl">
+                &times;
+            </button>
+        </div>
+        
+        <form id="quickPurchaseForm" method="POST" action="{{ url_for('shares_admin.manual_share_purchase') }}">
+            <input type="hidden" id="quickMemberId" name="member_id">
+            
+            <div class="space-y-4">
+                <!-- Member Info -->
+                <div class="bg-blue-50 p-4 rounded-lg">
+                    <h4 class="font-bold text-gray-800" id="quickMemberName"></h4>
+                    <p class="text-sm text-gray-600" id="quickMemberNumber"></p>
+                </div>
+                
+                <!-- Number of Shares -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Number of Shares *
+                    </label>
+                    <input type="number" 
+                           name="shares" 
+                           min="1"
+                           required
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                           placeholder="Enter number of shares">
+                </div>
+                
+                <!-- Payment Method -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Payment Method *
+                    </label>
+                    <select name="payment_method" 
+                            required
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="cash">Cash</option>
+                        <option value="bank_transfer">Bank Transfer</option>
+                        <option value="mobile_money">Mobile Money</option>
+                    </select>
+                </div>
+                
+                <!-- Notes -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Notes (Optional)
+                    </label>
+                    <textarea name="notes" 
+                              rows="2"
+                              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              placeholder="Quick purchase note..."></textarea>
+                </div>
+            </div>
+            
+            <div class="mt-6 pt-4 border-t border-gray-200 flex justify-end space-x-3">
+                <button type="button"
+                        onclick="closeQuickPurchaseModal()"
+                        class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
+                    Cancel
+                </button>
+                <button type="submit" 
+                        class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                    Purchase
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Manual Purchase Modal Functions
+function openManualPurchaseModal() {
+    document.getElementById('manualPurchaseModal').classList.remove('hidden');
+}
+
+function closeManualPurchaseModal() {
+    document.getElementById('manualPurchaseModal').classList.add('hidden');
+}
+
+// Quick Purchase Modal Functions
+function quickPurchase(memberId, memberName, memberNumber) {
+    document.getElementById('quickMemberId').value = memberId;
+    document.getElementById('quickMemberName').textContent = memberName;
+    document.getElementById('quickMemberNumber').textContent = `Member No: ${memberNumber}`;
+    document.getElementById('quickPurchaseModal').classList.remove('hidden');
+}
+
+function closeQuickPurchaseModal() {
+    document.getElementById('quickPurchaseModal').classList.add('hidden');
+}
+
+// Calculate total amount in manual purchase modal
+document.getElementById('sharesInput').addEventListener('input', function() {
+    const shares = parseInt(this.value) || 0;
+    const pricePerShare = parseFloat(document.getElementById('pricePerShare').value);
+    const totalAmount = shares * pricePerShare;
+    
+    document.getElementById('totalAmountDisplay').textContent = 
+        `UGX ${totalAmount.toLocaleString()}`;
+});
+
+// Close modals when clicking outside
+window.onclick = function(event) {
+    const manualModal = document.getElementById('manualPurchaseModal');
+    const quickModal = document.getElementById('quickPurchaseModal');
+    
+    if (event.target === manualModal) {
+        closeManualPurchaseModal();
+    }
+    if (event.target === quickModal) {
+        closeQuickPurchaseModal();
+    }
+}
+</script>
+{% endblock %}

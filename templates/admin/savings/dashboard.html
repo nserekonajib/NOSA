@@ -1,0 +1,400 @@
+{% extends "adminbase.html" %}
+
+{% block title %}Savings Dashboard - LUNSERK SACCO Admin{% endblock %}
+
+{% block breadcrumb %}Savings / Dashboard{% endblock %}
+
+{% block page_title %}Savings Dashboard{% endblock %}
+
+{% block page_subtitle %}Overview of savings performance and statistics{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Summary Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="card-glass rounded-2xl p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600">Total Savings Balance</p>
+                    <p class="text-2xl font-bold text-gray-800">UGX {{ "{:,.0f}".format(total_balance) }}</p>
+                </div>
+                <div class="p-3 bg-blue-100 rounded-lg">
+                    <i class="fas fa-piggy-bank text-blue-600 text-xl"></i>
+                </div>
+            </div>
+            <div class="mt-4 text-xs text-gray-500">
+                <i class="fas fa-arrow-up text-green-500 mr-1"></i>
+                Available: UGX {{ "{:,.0f}".format(total_available) }}
+            </div>
+        </div>
+        
+        <div class="card-glass rounded-2xl p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600">Active Accounts</p>
+                    <p class="text-2xl font-bold text-gray-800">{{ active_accounts }}</p>
+                </div>
+                <div class="p-3 bg-green-100 rounded-lg">
+                    <i class="fas fa-users text-green-600 text-xl"></i>
+                </div>
+            </div>
+            <div class="mt-4 text-xs text-gray-500">
+                <i class="fas fa-user-plus text-blue-500 mr-1"></i>
+                +{{ new_accounts }} this month
+            </div>
+        </div>
+        
+        <div class="card-glass rounded-2xl p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600">Monthly Deposits</p>
+                    <p class="text-2xl font-bold text-gray-800">UGX {{ "{:,.0f}".format(monthly_deposits) }}</p>
+                </div>
+                <div class="p-3 bg-purple-100 rounded-lg">
+                    <i class="fas fa-arrow-down text-purple-600 text-xl"></i>
+                </div>
+            </div>
+            <div class="mt-4 text-xs text-gray-500">
+                <i class="fas fa-calendar-alt mr-1"></i>
+                Last 30 days
+            </div>
+        </div>
+        
+        <div class="card-glass rounded-2xl p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600">Monthly Withdrawals</p>
+                    <p class="text-2xl font-bold text-gray-800">UGX {{ "{:,.0f}".format(monthly_withdrawals) }}</p>
+                </div>
+                <div class="p-3 bg-red-100 rounded-lg">
+                    <i class="fas fa-arrow-up text-red-600 text-xl"></i>
+                </div>
+            </div>
+            <div class="mt-4 text-xs text-gray-500">
+                <i class="fas fa-calendar-alt mr-1"></i>
+                Last 30 days
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <a href="{{ url_for('savings.new_deposit') }}" 
+           class="card-glass rounded-2xl p-6 hover-lift transition-all hover:shadow-lg">
+            <div class="flex items-center">
+                <div class="p-3 bg-green-100 rounded-lg mr-4">
+                    <i class="fas fa-plus-circle text-green-600 text-xl"></i>
+                </div>
+                <div class="flex-1">
+                    <h3 class="font-bold text-gray-800">New Deposit</h3>
+                    <p class="text-sm text-gray-600">Process member deposit</p>
+                </div>
+                <i class="fas fa-arrow-right text-gray-400"></i>
+            </div>
+        </a>
+        
+        <a href="{{ url_for('savings.new_withdrawal') }}" 
+           class="card-glass rounded-2xl p-6 hover-lift transition-all hover:shadow-lg">
+            <div class="flex items-center">
+                <div class="p-3 bg-yellow-100 rounded-lg mr-4">
+                    <i class="fas fa-minus-circle text-yellow-600 text-xl"></i>
+                </div>
+                <div class="flex-1">
+                    <h3 class="font-bold text-gray-800">New Withdrawal</h3>
+                    <p class="text-sm text-gray-600">Process member withdrawal</p>
+                </div>
+                <i class="fas fa-arrow-right text-gray-400"></i>
+            </div>
+        </a>
+        
+        <a href="{{ url_for('savings.calculate_interest_endpoint') }}" onclick="calculateInterest(event)" 
+           class="card-glass rounded-2xl p-6 hover-lift transition-all hover:shadow-lg cursor-pointer">
+            <div class="flex items-center">
+                <div class="p-3 bg-blue-100 rounded-lg mr-4">
+                    <i class="fas fa-chart-line text-blue-600 text-xl"></i>
+                </div>
+                <div class="flex-1">
+                    <h3 class="font-bold text-gray-800">Calculate Interest</h3>
+                    <p class="text-sm text-gray-600">Apply monthly interest</p>
+                </div>
+                <i class="fas fa-calculator text-gray-400"></i>
+            </div>
+        </a>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Recent Transactions -->
+        <div class="card-glass rounded-2xl p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-lg font-bold text-gray-800">Recent Transactions</h3>
+                <a href="{{ url_for('savings.accounts') }}" class="text-blue-600 hover:text-blue-800 text-sm">
+                    View All <i class="fas fa-arrow-right ml-1"></i>
+                </a>
+            </div>
+            
+            {% if recent_transactions %}
+            <div class="space-y-4">
+                {% for transaction in recent_transactions %}
+                <div class="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
+                    <div class="flex items-center">
+                        <div class="p-2 rounded-lg mr-3
+                            {% if transaction.transaction_type == 'deposit' %}bg-green-100 text-green-600
+                            {% elif transaction.transaction_type == 'withdrawal' %}bg-red-100 text-red-600
+                            {% elif transaction.transaction_type == 'interest' %}bg-blue-100 text-blue-600
+                            {% else %}bg-gray-100 text-gray-600{% endif %}">
+                            {% if transaction.transaction_type == 'deposit' %}
+                            <i class="fas fa-arrow-down"></i>
+                            {% elif transaction.transaction_type == 'withdrawal' %}
+                            <i class="fas fa-arrow-up"></i>
+                            {% elif transaction.transaction_type == 'interest' %}
+                            <i class="fas fa-percentage"></i>
+                            {% else %}
+                            <i class="fas fa-exchange-alt"></i>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <p class="font-medium text-gray-800">{{ transaction.savings_accounts.account_number }}</p>
+                            <p class="text-sm text-gray-600">
+                                {{ transaction.savings_accounts.members.full_name|default('Unknown Member') }}
+                            </p>
+                            <p class="text-xs text-gray-500">{{ transaction.created_at[:10] }}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-medium {% if transaction.transaction_type == 'deposit' or transaction.transaction_type == 'interest' %}text-green-600{% else %}text-red-600{% endif %}">
+                            {% if transaction.transaction_type == 'deposit' or transaction.transaction_type == 'interest' %}+{% else %}-{% endif %}
+                            UGX {{ "{:,.0f}".format(transaction.amount) }}
+                        </p>
+                        <p class="text-xs text-gray-500">{{ transaction.transaction_type|title }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-8">
+                <i class="fas fa-exchange-alt text-gray-400 text-4xl mb-3"></i>
+                <p class="text-gray-600">No recent transactions</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Account Statistics -->
+        <div class="card-glass rounded-2xl p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-lg font-bold text-gray-800">Account Statistics</h3>
+                <span class="text-sm text-gray-600">Last Updated: Today</span>
+            </div>
+            
+            <div class="space-y-6">
+                <!-- Balance Distribution -->
+                <div>
+                    <h4 class="font-medium text-gray-800 mb-3">Balance Distribution</h4>
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">High Balance (UGX 1M+)</span>
+                            <span class="font-medium">12 Accounts</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-blue-600 h-2 rounded-full" style="width: 15%"></div>
+                        </div>
+                        
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">Medium Balance (UGX 100K-1M)</span>
+                            <span class="font-medium">45 Accounts</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-green-600 h-2 rounded-full" style="width: 60%"></div>
+                        </div>
+                        
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">Low Balance (&lt; UGX 100K)</span>
+                            <span class="font-medium">23 Accounts</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-yellow-600 h-2 rounded-full" style="width: 25%"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Activity Summary -->
+                <div>
+                    <h4 class="font-medium text-gray-800 mb-3">Monthly Activity</h4>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-blue-50 p-4 rounded-xl">
+                            <p class="text-sm text-blue-600">Total Deposits</p>
+                            <p class="text-xl font-bold text-gray-800">48</p>
+                        </div>
+                        <div class="bg-red-50 p-4 rounded-xl">
+                            <p class="text-sm text-red-600">Total Withdrawals</p>
+                            <p class="text-xl font-bold text-gray-800">32</p>
+                        </div>
+                        <div class="bg-green-50 p-4 rounded-xl">
+                            <p class="text-sm text-green-600">New Accounts</p>
+                            <p class="text-xl font-bold text-gray-800">{{ new_accounts }}</p>
+                        </div>
+                        <div class="bg-purple-50 p-4 rounded-xl">
+                            <p class="text-sm text-purple-600">Interest Paid</p>
+                            <p class="text-xl font-bold text-gray-800">UGX 450,000</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Quick Links -->
+                <div>
+                    <h4 class="font-medium text-gray-800 mb-3">Quick Links</h4>
+                    <div class="grid grid-cols-2 gap-3">
+                        <a href="{{ url_for('savings.accounts') }}?status=active"
+                           class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm text-center">
+                            <i class="fas fa-check-circle mr-1"></i> Active Accounts
+                        </a>
+                        <a href="{{ url_for('savings.deposits') }}?status=pending"
+                           class="px-4 py-2 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition-colors text-sm text-center">
+                            <i class="fas fa-clock mr-1"></i> Pending Deposits
+                        </a>
+                        <a href="{{ url_for('savings.withdrawals') }}?status=pending"
+                           class="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors text-sm text-center">
+                            <i class="fas fa-exclamation-circle mr-1"></i> Pending Withdrawals
+                        </a>
+                        <a href="{{ url_for('members.members_list') }}"
+                           class="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm text-center">
+                            <i class="fas fa-users mr-1"></i> All Members
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance Chart (Placeholder) -->
+    <div class="card-glass rounded-2xl p-6">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-lg font-bold text-gray-800">Monthly Performance</h3>
+            <select class="px-3 py-1 border border-gray-300 rounded-lg text-sm">
+                <option>Last 6 Months</option>
+                <option>Last 12 Months</option>
+                <option>Year to Date</option>
+            </select>
+        </div>
+        
+        <!-- Chart Placeholder -->
+        <div class="h-64 flex items-center justify-center bg-gray-50 rounded-xl">
+            <div class="text-center">
+                <i class="fas fa-chart-bar text-gray-400 text-4xl mb-3"></i>
+                <p class="text-gray-600">Performance chart would be displayed here</p>
+                <p class="text-sm text-gray-500">(Integration with chart library needed)</p>
+            </div>
+        </div>
+        
+        <!-- Monthly Stats -->
+        <div class="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="text-center p-4 border border-gray-200 rounded-xl">
+                <p class="text-sm text-gray-600">Average Deposit</p>
+                <p class="text-xl font-bold text-gray-800">UGX 250,000</p>
+            </div>
+            <div class="text-center p-4 border border-gray-200 rounded-xl">
+                <p class="text-sm text-gray-600">Average Withdrawal</p>
+                <p class="text-xl font-bold text-gray-800">UGX 150,000</p>
+            </div>
+            <div class="text-center p-4 border border-gray-200 rounded-xl">
+                <p class="text-sm text-gray-600">Growth Rate</p>
+                <p class="text-xl font-bold text-green-600">+12.5%</p>
+            </div>
+            <div class="text-center p-4 border border-gray-200 rounded-xl">
+                <p class="text-sm text-gray-600">Member Retention</p>
+                <p class="text-xl font-bold text-blue-600">94.2%</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Calculate interest
+    function calculateInterest(e) {
+        e.preventDefault();
+        
+        if (!confirm('Calculate and apply monthly interest to all active accounts?')) {
+            return;
+        }
+        
+        const button = e.currentTarget;
+        const originalHTML = button.innerHTML;
+        
+        // Show loading
+        button.innerHTML = '<div class="flex items-center justify-center"><i class="fas fa-spinner fa-spin mr-2"></i> Calculating...</div>';
+        button.classList.add('opacity-75');
+        
+        fetch("{{ url_for('savings.calculate_interest_endpoint') }}")
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showSuccessToast(data.message);
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 2000);
+                } else {
+                    button.innerHTML = originalHTML;
+                    button.classList.remove('opacity-75');
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                button.innerHTML = originalHTML;
+                button.classList.remove('opacity-75');
+                alert('Network error. Please try again.');
+            });
+    }
+
+    // Toast notification
+    function showSuccessToast(message) {
+        const toast = document.createElement('div');
+        toast.className = 'fixed top-4 right-4 z-50 px-6 py-3 bg-green-50 text-green-700 rounded-xl shadow-lg border-l-4 border-green-500 transform transition-all duration-300 translate-x-full';
+        toast.innerHTML = `
+            <div class="flex items-center">
+                <i class="fas fa-check-circle mr-3 text-lg"></i>
+                <span>${message}</span>
+            </div>
+        `;
+        
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.classList.remove('translate-x-full');
+            toast.classList.add('translate-x-0');
+        }, 10);
+        
+        setTimeout(() => {
+            toast.classList.remove('translate-x-0');
+            toast.classList.add('translate-x-full');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+
+    // Auto-refresh every 5 minutes
+    setInterval(() => {
+        // You could add auto-refresh logic here if needed
+        // console.log('Auto-refresh triggered');
+    }, 300000);
+</script>
+
+<style>
+    .hover-lift {
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    }
+    
+    .hover-lift:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+    
+    /* Chart placeholder animation */
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+    
+    .chart-placeholder {
+        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+</style>
+{% endblock %}

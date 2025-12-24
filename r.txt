@@ -1,0 +1,11 @@
+Flask
+Flask-WTF
+werkzeug
+supabase
+python-dotenv
+pesapal
+xhtml2pdf
+cloudinary
+requests
+urllib3
+waitress

@@ -1,0 +1,314 @@
+{% extends "adminbase.html" %}
+
+{% block title %}Other Incomes - LUNSERK SACCO Admin{% endblock %}
+
+{% block breadcrumb %}Expenses & Incomes / Other Incomes{% endblock %}
+
+{% block page_title %}Other Incomes{% endblock %}
+
+{% block page_subtitle %}Manage non-member income sources{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header with Actions -->
+    <div class="card-glass rounded-2xl p-6">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+                <h2 class="text-lg font-bold text-gray-800">Other Incomes</h2>
+                <p class="text-sm text-gray-600">Total: UGX {{ "{:,.0f}".format(total_amount) }}</p>
+            </div>
+            
+            <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                <!-- Add Income Button -->
+                <a href="{{ url_for('expense_incomes.add_other_income') }}" 
+                   class="px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 transition-all hover-lift">
+                    <i class="fas fa-plus mr-2"></i> Add Income
+                </a>
+                
+                <!-- Filter Button -->
+                <button onclick="toggleFilters()" 
+                        class="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors">
+                    <i class="fas fa-filter mr-2"></i> Filter
+                </button>
+            </div>
+        </div>
+        
+        <!-- Filters Panel -->
+        <div id="filtersPanel" class="hidden mt-6 pt-6 border-t border-gray-200">
+            <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <!-- Date Range -->
+                <div class="md:col-span-2">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+                            <input type="date" name="start_date" value="{{ start_date }}"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">End Date</label>
+                            <input type="date" name="end_date" value="{{ end_date }}"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Category Filter -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                    <select name="category_id" 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                        <option value="">All Categories</option>
+                        {% for category in categories %}
+                        <option value="{{ category.id }}" {% if category_id == category.id %}selected{% endif %}>
+                            {{ category.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- Filter Actions -->
+                <div class="flex items-end">
+                    <div class="flex gap-2 w-full">
+                        <button type="submit" 
+                                class="flex-1 px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700">
+                            Apply
+                        </button>
+                        <a href="{{ url_for('expense_incomes.other_incomes_list') }}" 
+                           class="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50">
+                            Clear
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Incomes Table -->
+    <div class="card-glass rounded-2xl overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Income #</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Received From</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Method</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for income in incomes %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4">
+                            <div class="text-sm font-medium text-gray-900">
+                                {{ income.income_number }}
+                            </div>
+                            {% if income.reference_number %}
+                            <div class="text-xs text-gray-500">
+                                Ref: {{ income.reference_number }}
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-900">
+                            {{ income.payment_date }}
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                {{ income.income_categories.name }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-900">
+                            {{ income.description|truncate(50) if income.description else 'No description' }}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-900">
+                            {{ income.received_from|truncate(30) if income.received_from else 'N/A' }}
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm font-bold text-green-600">
+                                UGX {{ "{:,.0f}".format(income.amount|float) }}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-900">
+                            {{ income.payment_method|replace('_', ' ')|title }}
+                        </td>
+                        <td class="px-6 py-4 text-sm font-medium">
+                            <div class="flex items-center space-x-2">
+                                <button onclick="viewIncomeDetails('{{ income.id }}')" 
+                                        class="text-blue-600 hover:text-blue-900">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button onclick="editIncome('{{ income.id }}')" 
+                                        class="text-yellow-600 hover:text-yellow-900">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="px-6 py-12 text-center">
+                            <div class="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                                <i class="fas fa-money-bill-wave text-gray-400 text-2xl"></i>
+                            </div>
+                            <h3 class="text-lg font-bold text-gray-700 mb-2">No Incomes Found</h3>
+                            <p class="text-gray-600 mb-4">No other incomes recorded matching your criteria</p>
+                            <a href="{{ url_for('expense_incomes.add_other_income') }}" 
+                               class="px-6 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 transition-all inline-block">
+                                <i class="fas fa-plus mr-2"></i> Add Income
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="bg-gray-50">
+                    <tr>
+                        <td colspan="5" class="px-6 py-4 text-right text-sm font-medium text-gray-900">
+                            Total:
+                        </td>
+                        <td class="px-6 py-4 text-sm font-bold text-green-600">
+                            UGX {{ "{:,.0f}".format(total_amount) }}
+                        </td>
+                        <td colspan="2"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Income Details Modal -->
+<div id="incomeDetailsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-2xl p-6 max-w-lg w-full mx-4 max-h-[80vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-lg font-bold text-gray-800">Income Details</h3>
+            <button onclick="closeModal('incomeDetailsModal')" 
+                    class="p-2 hover:bg-gray-100 rounded-lg">
+                <i class="fas fa-times text-gray-500"></i>
+            </button>
+        </div>
+        
+        <div id="incomeDetailsContent" class="space-y-4">
+            <!-- Content will be loaded via JavaScript -->
+        </div>
+    </div>
+</div>
+
+<script>
+    // Toggle filters panel
+    function toggleFilters() {
+        document.getElementById('filtersPanel').classList.toggle('hidden');
+    }
+    
+    // View income details
+    function viewIncomeDetails(incomeId) {
+        fetch(`/admin/expense_incomes/api/income-details/${incomeId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const income = data.income;
+                    const content = document.getElementById('incomeDetailsContent');
+                    
+                    content.innerHTML = `
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-sm text-gray-600">Income Number</p>
+                                <p class="font-medium text-gray-800">${income.income_number}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600">Date</p>
+                                <p class="font-medium text-gray-800">${income.payment_date}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600">Category</p>
+                                <p class="font-medium text-gray-800">${income.income_categories?.name || 'N/A'}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600">Amount</p>
+                                <p class="text-lg font-bold text-green-600">UGX ${parseFloat(income.amount).toLocaleString()}</p>
+                            </div>
+                            <div class="col-span-2">
+                                <p class="text-sm text-gray-600">Description</p>
+                                <p class="font-medium text-gray-800">${income.description || 'No description'}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600">Received From</p>
+                                <p class="font-medium text-gray-800">${income.received_from || 'N/A'}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600">Payment Method</p>
+                                <p class="font-medium text-gray-800">${income.payment_method?.replace('_', ' ').toUpperCase() || 'N/A'}</p>
+                            </div>
+                            ${income.reference_number ? `
+                            <div class="col-span-2">
+                                <p class="text-sm text-gray-600">Reference Number</p>
+                                <p class="font-medium text-gray-800">${income.reference_number}</p>
+                            </div>` : ''}
+                            ${income.notes ? `
+                            <div class="col-span-2">
+                                <p class="text-sm text-gray-600">Notes</p>
+                                <p class="font-medium text-gray-800">${income.notes}</p>
+                            </div>` : ''}
+                            <div class="col-span-2">
+                                <p class="text-sm text-gray-600">Recorded By</p>
+                                <p class="font-medium text-gray-800">${income.created_by || 'System'}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600">Created</p>
+                                <p class="font-medium text-gray-800">${new Date(income.created_at).toLocaleString()}</p>
+                            </div>
+                        </div>
+                    `;
+                    
+                    document.getElementById('incomeDetailsModal').classList.remove('hidden');
+                } else {
+                    alert('Error loading income details: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error loading income details');
+            });
+    }
+    
+    // Edit income
+    function editIncome(incomeId) {
+        // You can implement edit functionality here
+        alert('Edit functionality coming soon!');
+    }
+    
+    // Close modal
+    function closeModal(modalId) {
+        document.getElementById(modalId).classList.add('hidden');
+    }
+    
+    // Close modal when clicking outside
+    document.getElementById('incomeDetailsModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeModal('incomeDetailsModal');
+        }
+    });
+</script>
+
+<style>
+    table {
+        min-width: 800px;
+    }
+    
+    @media (min-width: 768px) {
+        table {
+            min-width: 0;
+        }
+    }
+    
+    .hover-lift {
+        transition: transform 0.2s ease-in-out;
+    }
+    
+    .hover-lift:hover {
+        transform: translateY(-2px);
+    }
+</style>
+{% endblock %}

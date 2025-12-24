@@ -1,0 +1,504 @@
+{% extends "adminbase.html" %}
+
+{% block title %}Application Details - LUNSERK SACCO Admin{% endblock %}
+
+{% block breadcrumb %}Loans / Applications / Details{% endblock %}
+
+{% block page_title %}Loan Application Details{% endblock %}
+
+{% block page_subtitle %}#{{ application.account_number }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Application Header -->
+    <div class="card-glass rounded-2xl p-6">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+                <div class="flex items-center gap-3 mb-2">
+                    <h2 class="text-xl font-bold text-gray-800">Loan Application</h2>
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
+                        {% if application.status == 'pending' %}bg-yellow-100 text-yellow-800
+                        {% elif application.status == 'approved' %}bg-blue-100 text-blue-800
+                        {% elif application.status == 'disbursed' %}bg-green-100 text-green-800
+                        {% else %}bg-red-100 text-red-800{% endif %}">
+                        {% if application.status == 'pending' %}
+                        <i class="fas fa-clock mr-1"></i>
+                        {% elif application.status == 'approved' %}
+                        <i class="fas fa-check-circle mr-1"></i>
+                        {% elif application.status == 'disbursed' %}
+                        <i class="fas fa-money-bill-wave mr-1"></i>
+                        {% else %}
+                        <i class="fas fa-times-circle mr-1"></i>
+                        {% endif %}
+                        {{ application.status|title }}
+                    </span>
+                </div>
+                <p class="text-gray-600">Submitted on {{ application.created_at[:10] }}</p>
+            </div>
+            
+            <div class="flex gap-3">
+                {% if application.status == 'pending' %}
+                <button onclick="approveApplication('{{ application.id }}')" 
+                        class="px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700">
+                    <i class="fas fa-check mr-2"></i> Approve
+                </button>
+                <button onclick="rejectApplication('{{ application.id }}')" 
+                        class="px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700">
+                    <i class="fas fa-times mr-2"></i> Reject
+                </button>
+                {% elif application.status == 'approved' %}
+                <button onclick="disburseApplication('{{ application.id }}')" 
+                        class="px-4 py-2 bg-purple-600 text-white rounded-xl hover:bg-purple-700">
+                    <i class="fas fa-money-bill mr-2"></i> Disburse
+                </button>
+                {% endif %}
+                <a href="{{ url_for('loans.loan_applications') }}" 
+                   class="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50">
+                    <i class="fas fa-arrow-left mr-2"></i> Back
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Left Column -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Application Details -->
+            <div class="card-glass rounded-2xl p-6">
+                <h3 class="text-lg font-bold text-gray-800 mb-4">Application Details</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-gray-50 p-4 rounded-xl">
+                        <p class="text-sm text-gray-600">Loan Amount</p>
+                        <p class="text-xl font-bold text-gray-800">UGX {{ "{:,.0f}".format(application.loan_amount|float) }}</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-xl">
+                        <p class="text-sm text-gray-600">Interest Rate</p>
+                        <p class="text-xl font-bold text-gray-800">{{ application.interest_rate }}%</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-xl">
+                        <p class="text-sm text-gray-600">Repayment Period</p>
+                        <p class="text-xl font-bold text-gray-800">{{ application.repayment_period_months }} months</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-xl">
+                        <p class="text-sm text-gray-600">Monthly Installment</p>
+                        <p class="text-xl font-bold text-gray-800">UGX {{ "{:,.0f}".format(application.monthly_installment|float) if application.monthly_installment else 'N/A' }}</p>
+                    </div>
+                </div>
+                
+                {% if application.purpose %}
+                <div class="mt-6">
+                    <h4 class="text-sm font-bold text-gray-700 mb-2">Loan Purpose</h4>
+                    <p class="text-gray-600 bg-gray-50 p-4 rounded-xl">{{ application.purpose }}</p>
+                </div>
+                {% endif %}
+                
+                <!-- Loan Account Info -->
+                {% if loan_account %}
+                <div class="mt-6 pt-6 border-t border-gray-200">
+                    <h4 class="text-sm font-bold text-gray-700 mb-4">Loan Account Status</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="bg-blue-50 p-4 rounded-xl">
+                            <p class="text-sm text-gray-600">Current Balance</p>
+                            <p class="text-lg font-bold text-gray-800">UGX {{ "{:,.0f}".format(loan_account.current_balance|float) }}</p>
+                        </div>
+                        <div class="bg-green-50 p-4 rounded-xl">
+                            <p class="text-sm text-gray-600">Available Limit</p>
+                            <p class="text-lg font-bold text-gray-800">UGX {{ "{:,.0f}".format(loan_account.available_limit|float) }}</p>
+                        </div>
+                        <div class="bg-purple-50 p-4 rounded-xl">
+                            <p class="text-sm text-gray-600">Credit Limit</p>
+                            <p class="text-lg font-bold text-gray-800">UGX {{ "{:,.0f}".format(loan_account.credit_limit|float) }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Repayment Schedule -->
+            {% if repayments %}
+            <div class="card-glass rounded-2xl p-6">
+                <h3 class="text-lg font-bold text-gray-800 mb-4">Repayment Schedule</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">#</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Due Date</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Principal</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-xs font-medium text-gray-500 uppercase">Interest</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            {% for repayment in repayments %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-3 text-sm font-medium text-gray-900">
+                                    {{ repayment.installment_number }}
+                                </td>
+                                <td class="px-4 py-3 text-sm text-gray-500">
+                                    {{ repayment.due_date }}
+                                </td>
+                                <td class="px-4 py-3 text-sm font-medium text-gray-900">
+                                    UGX {{ "{:,.0f}".format(repayment.due_amount|float) }}
+                                </td>
+                                <td class="px-4 py-3 text-sm text-gray-500">
+                                    UGX {{ "{:,.0f}".format(repayment.principal_amount|float) }}
+                                </td>
+                                <td class="px-4 py-3 text-sm text-gray-500">
+                                    UGX {{ "{:,.0f}".format(repayment.interest_amount|float) }}
+                                </td>
+                                <td class="px-4 py-3">
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs
+                                        {% if repayment.status == 'paid' %}bg-green-100 text-green-800
+                                        {% elif repayment.status == 'overdue' %}bg-red-100 text-red-800
+                                        {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                        {{ repayment.status|title }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3">
+                                    {% if repayment.status != 'paid' %}
+                                    <button onclick="recordRepayment('{{ repayment.id }}')" 
+                                            class="text-sm text-blue-600 hover:text-blue-900">
+                                        <i class="fas fa-money-bill mr-1"></i> Record
+                                    </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Transaction History -->
+            {% if transactions %}
+            <div class="card-glass rounded-2xl p-6">
+                <h3 class="text-lg font-bold text-gray-800 mb-4">Transaction History</h3>
+                <div class="space-y-4">
+                    {% for transaction in transactions %}
+                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="text-sm font-medium text-gray-900">{{ transaction.transaction_type|title }}</span>
+                                {% if transaction.reference_number %}
+                                <span class="text-xs text-gray-500">({{ transaction.reference_number }})</span>
+                                {% endif %}
+                            </div>
+                            <p class="text-xs text-gray-600">{{ transaction.description }}</p>
+                            <p class="text-xs text-gray-500 mt-1">{{ transaction.created_at[:19] }}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-lg font-bold text-gray-800">UGX {{ "{:,.0f}".format(transaction.amount|float) }}</p>
+                            <p class="text-xs text-gray-600">{{ transaction.payment_method|replace('_', ' ')|title }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Right Column -->
+        <div class="space-y-6">
+            <!-- Member Information -->
+            <div class="card-glass rounded-2xl p-6">
+                <h3 class="text-lg font-bold text-gray-800 mb-4">Member Information</h3>
+                <div class="space-y-3">
+                    <div>
+                        <p class="text-sm text-gray-600">Name</p>
+                        <p class="font-medium text-gray-800">{{ application.members.full_name }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">Member Number</p>
+                        <p class="font-medium text-gray-800">{{ application.members.member_number }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">Email</p>
+                        <p class="font-medium text-gray-800">{{ application.members.email }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">Phone</p>
+                        <p class="font-medium text-gray-800">{{ application.members.phone_number }}</p>
+                    </div>
+                    <div class="pt-4 border-t border-gray-200">
+                        <a href="{{ url_for('members.member_details', member_id=application.member_id) }}" 
+                           class="inline-flex items-center text-sm text-blue-600 hover:text-blue-800">
+                            <i class="fas fa-external-link-alt mr-2"></i>
+                            View Full Profile
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Application Timeline -->
+            <div class="card-glass rounded-2xl p-6">
+                <h3 class="text-lg font-bold text-gray-800 mb-4">Application Timeline</h3>
+                <div class="space-y-4">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0">
+                            <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-file-alt text-green-600 text-sm"></i>
+                            </div>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-900">Application Submitted</p>
+                            <p class="text-xs text-gray-500">{{ application.created_at[:19] }}</p>
+                        </div>
+                    </div>
+                    
+                    {% if application.approved_at %}
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0">
+                            <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-check text-blue-600 text-sm"></i>
+                            </div>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-900">Application Approved</p>
+                            <p class="text-xs text-gray-500">{{ application.approved_at[:19] }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if application.disbursed_at %}
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0">
+                            <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-money-bill text-purple-600 text-sm"></i>
+                            </div>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-900">Loan Disbursed</p>
+                            <p class="text-xs text-gray-500">{{ application.disbursed_at[:19] }}</p>
+                            {% if application.disbursement_method %}
+                            <p class="text-xs text-gray-600 mt-1">Method: {{ application.disbursement_method|replace('_', ' ')|title }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if application.rejected_at %}
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0">
+                            <div class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-times text-red-600 text-sm"></i>
+                            </div>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-900">Application Rejected</p>
+                            <p class="text-xs text-gray-500">{{ application.rejected_at[:19] }}</p>
+                            {% if application.remarks %}
+                            <p class="text-xs text-gray-600 mt-1">{{ application.remarks }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Loan Product Info -->
+            {% if application.loan_products %}
+            <div class="card-glass rounded-2xl p-6">
+                <h3 class="text-lg font-bold text-gray-800 mb-4">Loan Product</h3>
+                <div class="space-y-2">
+                    <p class="font-medium text-gray-800">{{ application.loan_products.name }}</p>
+                    <p class="text-sm text-gray-600">{{ application.loan_products.description }}</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Record Repayment Modal -->
+<div id="repaymentModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-2xl p-6 max-w-md w-full mx-4">
+        <h3 class="text-lg font-bold text-gray-800 mb-4">Record Repayment</h3>
+        <form id="recordRepaymentForm">
+            <input type="hidden" id="repaymentId" name="repayment_id">
+            <div class="space-y-4">
+                <div>
+                    <label for="paidAmount" class="block text-sm font-medium text-gray-700 mb-2">
+                        Amount Paid *
+                    </label>
+                    <input type="number" id="paidAmount" name="paid_amount" step="100" required
+                           class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+                <div>
+                    <label for="paymentMethod" class="block text-sm font-medium text-gray-700 mb-2">
+                        Payment Method *
+                    </label>
+                    <select id="paymentMethod" name="payment_method" required
+                            class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">Select Method</option>
+                        <option value="cash">Cash</option>
+                        <option value="mobile_money">Mobile Money</option>
+                        <option value="bank_transfer">Bank Transfer</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="referenceNumber" class="block text-sm font-medium text-gray-700 mb-2">
+                        Reference Number
+                    </label>
+                    <input type="text" id="referenceNumber" name="reference_number"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           placeholder="Transaction reference">
+                </div>
+                <div>
+                    <label for="repaymentRemarks" class="block text-sm font-medium text-gray-700 mb-2">
+                        Remarks
+                    </label>
+                    <textarea id="repaymentRemarks" name="remarks" rows="2"
+                              class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
+                </div>
+            </div>
+            <div class="flex justify-end space-x-3 mt-6">
+                <button type="button" onclick="closeModal('repaymentModal')" 
+                        class="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50">
+                    Cancel
+                </button>
+                <button type="submit" 
+                        class="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700">
+                    Record Repayment
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Record repayment
+    function recordRepayment(repaymentId) {
+        document.getElementById('repaymentId').value = repaymentId;
+        document.getElementById('repaymentModal').classList.remove('hidden');
+    }
+    
+    function closeModal(modalId) {
+        document.getElementById(modalId).classList.add('hidden');
+    }
+    
+    // Submit repayment form
+    document.getElementById('recordRepaymentForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const repaymentId = document.getElementById('repaymentId').value;
+        const formData = new FormData(this);
+        
+        fetch(`/admin/loans/repayments/record/${repaymentId}`, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                closeModal('repaymentModal');
+                showSuccessMessage('Repayment recorded successfully');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Error recording repayment');
+        });
+    });
+    
+    // Application actions (similar to applications.html)
+    function approveApplication(appId) {
+        const remarks = prompt('Enter approval remarks (optional):');
+        if (remarks !== null) {
+            fetch(`/admin/loans/applications/approve/${appId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `remarks=${encodeURIComponent(remarks)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showSuccessMessage('Application approved successfully');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('Error approving application');
+            });
+        }
+    }
+    
+    function rejectApplication(appId) {
+        const remarks = prompt('Enter rejection reason:');
+        if (remarks !== null && remarks.trim()) {
+            fetch(`/admin/loans/applications/reject/${appId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `remarks=${encodeURIComponent(remarks)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showSuccessMessage('Application rejected successfully');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('Error rejecting application');
+            });
+        }
+    }
+    
+    function disburseApplication(appId) {
+        const method = prompt('Enter disbursement method (cash/mobile_money/bank_transfer):');
+        const reference = prompt('Enter reference number (optional):');
+        const remarks = prompt('Enter remarks (optional):');
+        
+        if (method && ['cash', 'mobile_money', 'bank_transfer'].includes(method)) {
+            const formData = new FormData();
+            formData.append('disbursement_method', method);
+            if (reference) formData.append('reference_number', reference);
+            if (remarks) formData.append('remarks', remarks);
+            
+            fetch(`/admin/loans/applications/disburse/${appId}`, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showSuccessMessage('Loan disbursed successfully');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('Error disbursing loan');
+            });
+        }
+    }
+    
+    // Success message
+    function showSuccessMessage(message) {
+        const toast = document.createElement('div');
+        toast.className = 'fixed top-4 right-4 z-50 px-6 py-3 bg-green-50 text-green-700 rounded-xl shadow-lg border-l-4 border-green-500';
+        toast.innerHTML = `
+            <div class="flex items-center">
+                <i class="fas fa-check-circle mr-3 text-lg"></i>
+                <span>${message}</span>
+            </div>
+        `;
+        
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,347 @@
+{% extends "adminbase.html" %}
+
+{% block title %}Add New Member - LUNSERK SACCO Admin{% endblock %}
+
+{% block breadcrumb %}Members / Add New Member{% endblock %}
+
+{% block page_title %}Register New Member{% endblock %}
+
+{% block page_subtitle %}Fill in the member's details below{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Member Registration Form -->
+    <div class="card-glass rounded-2xl p-6">
+        <form id="memberRegistrationForm" method="POST" enctype="multipart/form-data" class="space-y-6">
+            <!-- Personal Information Section -->
+            <div>
+                <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Personal Information</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Full Name -->
+                    <div>
+                        <label for="full_name" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-user text-blue-500 mr-1"></i> Full Name *
+                        </label>
+                        <input type="text" id="full_name" name="full_name" required
+                               class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                               placeholder="Enter full name">
+                    </div>
+                    
+                    <!-- Email Address -->
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-envelope text-blue-500 mr-1"></i> Email Address *
+                        </label>
+                        <input type="email" id="email" name="email" required
+                               class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                               placeholder="member@example.com">
+                    </div>
+                    
+                    <!-- Phone Number -->
+                    <div>
+                        <label for="phone_number" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-phone text-blue-500 mr-1"></i> Phone Number *
+                        </label>
+                        <input type="tel" id="phone_number" name="phone_number" required
+                               class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                               placeholder="+256 XXX XXX XXX">
+                    </div>
+
+                      <!-- shares owned -->
+                      <div>
+                        <label for="shares_owned" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-phone text-blue-500 mr-1"></i> Shares Owned *
+                        </label>
+                        <input type="number"
+                                id="shares_owned"
+                                name="shares_owned"
+                                min="0"
+                                step="1"
+                                required
+                                class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                placeholder="Enter number of shares">
+                 
+                    </div
+                    
+                    <!-- Date of Birth -->
+                    <div>
+                        <label for="date_of_birth" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-calendar-alt text-blue-500 mr-1"></i> Date of Birth *
+                        </label>
+                        <input type="date" id="date_of_birth" name="date_of_birth" required
+                               class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                    </div>
+                    
+                    <!-- Gender -->
+                    <div>
+                        <label for="gender" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-venus-mars text-blue-500 mr-1"></i> Gender
+                        </label>
+                        <select id="gender" name="gender"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                            <option value="">Select Gender</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Identification Section -->
+            <div>
+                <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Identification</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- NIN Number -->
+                    <div>
+                        <label for="nin_number" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-id-card text-blue-500 mr-1"></i> NIN Number
+                        </label>
+                        <input type="text" id="nin_number" name="nin_number"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                               placeholder="Enter NIN number">
+                    </div>
+                    
+                    <!-- National ID -->
+                    <div>
+                        <label for="national_id" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-passport text-blue-500 mr-1"></i> National ID Number
+                        </label>
+                        <input type="text" id="national_id" name="national_id"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                               placeholder="Enter National ID">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Document Upload Section -->
+            <div>
+                <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Document Upload</h3>
+                <p class="text-sm text-gray-600 mb-4">Upload clear images of identification documents</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- ID Front -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-id-card text-blue-500 mr-1"></i> ID Front Photo
+                        </label>
+                        <div class="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center hover:border-blue-500 transition-colors">
+                            <input type="file" id="id_front" name="id_front" accept="image/*" class="hidden" onchange="previewImage(this, 'id_front_preview')">
+                            <div id="id_front_preview" class="mb-2">
+                                <i class="fas fa-camera text-gray-400 text-3xl mb-2"></i>
+                                <p class="text-sm text-gray-600">Click to upload ID front</p>
+                            </div>
+                            <button type="button" onclick="document.getElementById('id_front').click()" 
+                                    class="px-4 py-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors text-sm">
+                                Choose File
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- ID Back -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-id-card text-blue-500 mr-1"></i> ID Back Photo (Optional)
+                        </label>
+                        <div class="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center hover:border-blue-500 transition-colors">
+                            <input type="file" id="id_back" name="id_back" accept="image/*" class="hidden" onchange="previewImage(this, 'id_back_preview')">
+                            <div id="id_back_preview" class="mb-2">
+                                <i class="fas fa-camera text-gray-400 text-3xl mb-2"></i>
+                                <p class="text-sm text-gray-600">Click to upload ID back</p>
+                            </div>
+                            <button type="button" onclick="document.getElementById('id_back').click()" 
+                                    class="px-4 py-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors text-sm">
+                                Choose File
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Profile Photo -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-user-circle text-blue-500 mr-1"></i> Profile Photo (Optional)
+                        </label>
+                        <div class="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center hover:border-blue-500 transition-colors">
+                            <input type="file" id="profile_photo" name="profile_photo" accept="image/*" class="hidden" onchange="previewImage(this, 'profile_preview')">
+                            <div id="profile_preview" class="mb-2">
+                                <i class="fas fa-user text-gray-400 text-3xl mb-2"></i>
+                                <p class="text-sm text-gray-600">Click to upload photo</p>
+                            </div>
+                            <button type="button" onclick="document.getElementById('profile_photo').click()" 
+                                    class="px-4 py-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors text-sm">
+                                Choose File
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact Information -->
+            <div>
+                <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Contact Information</h3>
+                
+                <div class="grid grid-cols-1 gap-4">
+                    <!-- Contact Address -->
+                    <div>
+                        <label for="contact_address" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-home text-blue-500 mr-1"></i> Contact Address
+                        </label>
+                        <textarea id="contact_address" name="contact_address" rows="2"
+                                  class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                  placeholder="Enter physical address"></textarea>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <!-- Emergency Contact Name -->
+                        <div>
+                            <label for="emergency_contact_name" class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="fas fa-user-friends text-blue-500 mr-1"></i> Emergency Contact Name
+                            </label>
+                            <input type="text" id="emergency_contact_name" name="emergency_contact_name"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                   placeholder="Contact person's name">
+                        </div>
+                        
+                        <!-- Emergency Contact Phone -->
+                        <div>
+                            <label for="emergency_contact_phone" class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="fas fa-phone-alt text-blue-500 mr-1"></i> Emergency Contact Phone
+                            </label>
+                            <input type="tel" id="emergency_contact_phone" name="emergency_contact_phone"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                   placeholder="Emergency phone number">
+                        </div>
+                        
+                        <!-- Relationship -->
+                        <div>
+                            <label for="emergency_contact_relationship" class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="fas fa-handshake text-blue-500 mr-1"></i> Relationship
+                            </label>
+                            <input type="text" id="emergency_contact_relationship" name="emergency_contact_relationship"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                   placeholder="e.g., Spouse, Parent, Sibling">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="pt-6 border-t border-gray-200">
+                <div class="flex justify-between items-center">
+                    <a href="{{ url_for('members.members_list') }}" 
+                       class="px-6 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors">
+                        <i class="fas fa-arrow-left mr-2"></i> Back to List
+                    </a>
+                    
+                    <button type="submit" 
+                            class="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all hover-lift">
+                        <i class="fas fa-arrow-right mr-2"></i> Continue to Payment
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Membership Information Card -->
+    <div class="card-glass rounded-2xl p-6">
+        <div class="flex items-start">
+            <div class="p-3 bg-blue-100 rounded-lg mr-4">
+                <i class="fas fa-info-circle text-blue-500 text-xl"></i>
+            </div>
+            <div class="flex-1">
+                <h3 class="text-lg font-bold text-gray-800 mb-2">Membership Information</h3>
+                <ul class="space-y-2 text-gray-600">
+                    <li class="flex items-center">
+                        <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                        <span>Membership fee: <strong class="text-gray-800">UGX 50,000</strong> (one-time)</span>
+                    </li>
+                    <li class="flex items-center">
+                        <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                        <span>Membership validity: <strong class="text-gray-800">1 year</strong></span>
+                    </li>
+                    <li class="flex items-center">
+                        <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                        <span>Automatic creation of savings and loan accounts</span>
+                    </li>
+                    <li class="flex items-center">
+                        <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                        <span>Default password: <code class="bg-gray-100 px-2 py-1 rounded">123</code></span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Image preview functionality
+    function previewImage(input, previewId) {
+        const preview = document.getElementById(previewId);
+        const file = input.files[0];
+        
+        if (file) {
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                preview.innerHTML = `
+                    <img src="${e.target.result}" class="w-24 h-24 object-cover rounded-lg mx-auto mb-2">
+                    <p class="text-xs text-gray-600 truncate">${file.name}</p>
+                `;
+            }
+            
+            reader.readAsDataURL(file);
+        }
+    }
+
+    // Form validation
+    document.getElementById('memberRegistrationForm').addEventListener('submit', function(e) {
+        const requiredFields = ['full_name', 'email', 'phone_number', 'date_of_birth'];
+        let isValid = true;
+        
+        requiredFields.forEach(field => {
+            const input = document.getElementById(field);
+            if (!input.value.trim()) {
+                input.classList.add('border-red-500');
+                isValid = false;
+                
+                // Remove error on input
+                input.addEventListener('input', () => {
+                    input.classList.remove('border-red-500');
+                });
+            }
+        });
+        
+        if (!isValid) {
+            e.preventDefault();
+            alert('Please fill in all required fields marked with *');
+        }
+    });
+
+    // File size validation
+    document.querySelectorAll('input[type="file"]').forEach(input => {
+        input.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const maxSize = 5 * 1024 * 1024; // 5MB
+                if (file.size > maxSize) {
+                    alert('File size too large. Maximum size is 5MB.');
+                    this.value = '';
+                    
+                    // Reset preview
+                    const previewId = this.getAttribute('onchange').match(/'([^']+)'/)[1];
+                    const preview = document.getElementById(previewId);
+                    preview.innerHTML = `
+                        <i class="fas fa-camera text-gray-400 text-3xl mb-2"></i>
+                        <p class="text-sm text-gray-600">Click to upload ${this.name.replace('_', ' ')}</p>
+                    `;
+                }
+            }
+        });
+    });
+
+    // Format phone number
+
+</script>
+{% endblock %}
