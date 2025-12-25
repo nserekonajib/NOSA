@@ -64,6 +64,14 @@ def admin_dashboard():
 def home():
     return redirect(url_for('memberauth.member_login'))
 
+
+@app.route("/test-env")
+def test_env():
+    return {
+        "SUPABASE_URL": os.environ.get("SUPABASE_URL"),
+        "SUPABASE_KEY": os.environ.get("SUPABASE_KEY")
+    }
+
 from waitress import serve
 
 if __name__ == '__main__':
